@@ -6,6 +6,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 )
 
 // Generate HTTP client
@@ -19,32 +21,34 @@ func GetHttpClient(insecure bool) *http.Client {
 }
 
 func main() {
-	fmt.Println("hello, world")
+	port, _ := strconv.Atoi(os.Args[1])
+	server := os.Args[2]
+	path1 := os.Args[3]
+	path2 := os.Args[4]
 
-	// TODO: Hard code
-	path1 := "mypath1"
-	path2 := "mypath2"
-	// TODO: Hard code
-	conn, err := net.Dial("tcp", "localhost:8000")
+	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		panic(err)
 	}
 	defer conn.Close()
 
-	// TODO: hard code server
-	url1 := fmt.Sprintf("https://ppng.io/%s", path1)
+	url2 := fmt.Sprintf("%s/%s", server, path2)
 	postHttpClient := GetHttpClient(false)
-	postHttpClient.Post(url1, "application/octet-stream", conn)
-	fmt.Println("after POST")
-
-
-	// TODO: hard code server
-	url2 := fmt.Sprintf("https://ppng.io/%s", path2)
-	getHttpClient := GetHttpClient(false)
-	res, err := getHttpClient.Get(url2)
+	_, err = postHttpClient.Post(url2, "application/octet-stream", conn)
 	if err != nil {
 		panic(err)
 	}
-	io.Copy(conn, res.Body)
+	fmt.Println("after POST")
+
+	url1 := fmt.Sprintf("%s/%s", server, path1)
+	getHttpClient := GetHttpClient(false)
+	res, err := getHttpClient.Get(url1)
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.Copy(conn, res.Body)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("after GET")
 }
