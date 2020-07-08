@@ -6,7 +6,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"strconv"
 )
 
@@ -17,12 +19,21 @@ func GetHttpClient(insecure bool) *http.Client {
 		TLSClientConfig: &tls.Config{ InsecureSkipVerify: insecure },
 	}
 	return &http.Client{Transport: tr}
+}
 
+// (base: https://stackoverflow.com/a/34668130/2885946)
+func urlJoin(s string, p string) (string, error) {
+	u, err := url.Parse(s)
+	if err != nil {
+		return "", err
+	}
+	u.Path = path.Join(u.Path, p)
+	return u.String(), nil
 }
 
 func main() {
 	port, _ := strconv.Atoi(os.Args[1])
-	server := os.Args[2]
+	serverUrl := os.Args[2]
 	path1 := os.Args[3]
 	path2 := os.Args[4]
 
@@ -32,7 +43,10 @@ func main() {
 	}
 	defer conn.Close()
 
-	url2 := fmt.Sprintf("%s/%s", server, path2)
+	url2, err := urlJoin(serverUrl, path2)
+	if err != nil {
+		panic(err)
+	}
 	postHttpClient := GetHttpClient(false)
 	_, err = postHttpClient.Post(url2, "application/octet-stream", conn)
 	if err != nil {
@@ -40,7 +54,10 @@ func main() {
 	}
 	fmt.Println("after POST")
 
-	url1 := fmt.Sprintf("%s/%s", server, path1)
+	url1, err := urlJoin(serverUrl, path1)
+	if err != nil {
+		panic(err)
+	}
 	getHttpClient := GetHttpClient(false)
 	res, err := getHttpClient.Get(url1)
 	if err != nil {
