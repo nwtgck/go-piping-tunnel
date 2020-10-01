@@ -19,6 +19,7 @@ const (
 
 var serverUrl string
 var tcpPort int
+var insecure bool
 var showsVersion bool
 
 func init() {
@@ -30,6 +31,8 @@ func init() {
 	RootCmd.Flags().StringVarP(&serverUrl,  "server",  "s", defaultServer, "Piping Server URL")
 	RootCmd.Flags().IntVarP(&tcpPort,  "port",  "p", 0, "TCP port of server host")
 	RootCmd.MarkFlagRequired("port")
+	// NOTE: --insecure, -k is inspired by curl
+	RootCmd.Flags().BoolVarP(&insecure, "insecure", "k", false, "Allow insecure server connections when using SSL")
 	RootCmd.Flags().BoolVarP(&showsVersion, "version", "v", false, "show version")
 }
 
@@ -59,7 +62,7 @@ var RootCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		postHttpClient := getHttpClient(false)
+		postHttpClient := getHttpClient(insecure)
 		_, err = postHttpClient.Post(url2, "application/octet-stream", conn)
 		if err != nil {
 			panic(err)
@@ -70,7 +73,7 @@ var RootCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		getHttpClient := getHttpClient(false)
+		getHttpClient := getHttpClient(insecure)
 		res, err := getHttpClient.Get(url1)
 		if err != nil {
 			panic(err)
