@@ -1,7 +1,7 @@
 # piping-tunnel
 [![CircleCI](https://circleci.com/gh/nwtgck/go-piping-tunnel.svg?style=shield)](https://app.circleci.com/pipelines/github/nwtgck/go-piping-tunnel)
 
-Tunnel CLI over Piping Server
+Tunnel CLI over [Piping Server](https://github.com/nwtgck/piping-server)
 
 ## Help
 
