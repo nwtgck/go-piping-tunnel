@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"github.com/nwtgck/go-piping-tunnel/version"
@@ -11,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"time"
 )
 
 const (
@@ -20,6 +22,7 @@ const (
 var serverUrl string
 var tcpPort int
 var insecure bool
+var dnsServer string
 var showsVersion bool
 
 func init() {
@@ -33,6 +36,7 @@ func init() {
 	RootCmd.MarkFlagRequired("port")
 	// NOTE: --insecure, -k is inspired by curl
 	RootCmd.Flags().BoolVarP(&insecure, "insecure", "k", false, "Allow insecure server connections when using SSL")
+	RootCmd.Flags().StringVar(&dnsServer, "dns-server", "", "DNS server (e.g. 1.1.1.1:53)")
 	RootCmd.Flags().BoolVarP(&showsVersion, "version", "v", false, "show version")
 }
 
@@ -58,12 +62,17 @@ var RootCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
+		httpClient := getHttpClient(insecure)
+		if dnsServer != "" {
+			// Set DNS resolver
+			httpClient.Transport.(*http.Transport).DialContext = dialContext(dnsServer)
+		}
+
 		url2, err := urlJoin(serverUrl, path2)
 		if err != nil {
 			panic(err)
 		}
-		postHttpClient := getHttpClient(insecure)
-		_, err = postHttpClient.Post(url2, "application/octet-stream", conn)
+		_, err = httpClient.Post(url2, "application/octet-stream", conn)
 		if err != nil {
 			panic(err)
 		}
@@ -73,8 +82,7 @@ var RootCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		getHttpClient := getHttpClient(insecure)
-		res, err := getHttpClient.Get(url1)
+		res, err := httpClient.Get(url1)
 		if err != nil {
 			panic(err)
 		}
@@ -105,4 +113,27 @@ func getHttpClient(insecure bool) *http.Client {
 		TLSClientConfig: &tls.Config{ InsecureSkipVerify: insecure },
 	}
 	return &http.Client{Transport: tr}
+}
+
+
+// Set default resolver for HTTP client
+func dialContext(dnsServer string) func(ctx context.Context, network, address string) (net.Conn, error) {
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: time.Millisecond * time.Duration(10000),
+			}
+			return d.DialContext(ctx, "udp", dnsServer)
+		},
+	}
+
+	// Resolver for HTTP
+	return func(ctx context.Context, network, address string) (net.Conn, error) {
+		d := net.Dialer{
+			Timeout:  time.Millisecond * time.Duration(10000),
+			Resolver: resolver,
+		}
+		return d.DialContext(ctx, network, address)
+	}
 }
