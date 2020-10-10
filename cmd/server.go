@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -51,12 +52,18 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("after POST")
 
 		url1, err := urlJoin(serverUrl, path1)
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println("==== Client host (socat + curl) ====")
+		fmt.Printf(
+			"socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
+			strings.Replace(url2, ":", "\\:", -1),
+			strings.Replace(url1, ":", "\\:", -1),
+		)
+
 		res, err := httpClient.Get(url1)
 		if err != nil {
 			panic(err)
@@ -65,7 +72,7 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("after GET")
+		fmt.Println("Finished")
 
 		return nil
 	},
