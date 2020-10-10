@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"context"
-	"crypto/tls"
 	"fmt"
+	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
@@ -11,7 +10,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 )
 
 var serverHostPort int
@@ -38,10 +36,10 @@ var serverCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		httpClient := getHttpClient(insecure)
+		httpClient := util.CreateHttpClient(insecure)
 		if dnsServer != "" {
 			// Set DNS resolver
-			httpClient.Transport.(*http.Transport).DialContext = dialContext(dnsServer)
+			httpClient.Transport.(*http.Transport).DialContext = util.CreateDialContext(dnsServer)
 		}
 
 		url2, err := urlJoin(serverUrl, path2)
@@ -86,35 +84,4 @@ func urlJoin(s string, p string) (string, error) {
 	}
 	u.Path = path.Join(u.Path, p)
 	return u.String(), nil
-}
-
-// Generate HTTP client
-func getHttpClient(insecure bool) *http.Client {
-	// Set insecure or not
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
-	}
-	return &http.Client{Transport: tr}
-}
-
-// Set default resolver for HTTP client
-func dialContext(dnsServer string) func(ctx context.Context, network, address string) (net.Conn, error) {
-	resolver := &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{
-				Timeout: time.Millisecond * time.Duration(10000),
-			}
-			return d.DialContext(ctx, "udp", dnsServer)
-		},
-	}
-
-	// Resolver for HTTP
-	return func(ctx context.Context, network, address string) (net.Conn, error) {
-		d := net.Dialer{
-			Timeout:  time.Millisecond * time.Duration(10000),
-			Resolver: resolver,
-		}
-		return d.DialContext(ctx, network, address)
-	}
 }
