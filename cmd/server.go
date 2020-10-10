@@ -16,12 +16,12 @@ import (
 var serverHostPort int
 
 func init() {
-	serverCmd.Flags().IntVarP(&serverHostPort,  "port",  "p", 0, "TCP port of server host")
+	serverCmd.Flags().IntVarP(&serverHostPort, "port", "p", 0, "TCP port of server host")
 	serverCmd.MarkFlagRequired("port")
 }
 
 var serverCmd = &cobra.Command{
-	Use: "server",
+	Use:   "server",
 	Short: "Run server-host",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
@@ -85,11 +85,10 @@ func urlJoin(s string, p string) (string, error) {
 func getHttpClient(insecure bool) *http.Client {
 	// Set insecure or not
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{ InsecureSkipVerify: insecure },
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
 	}
 	return &http.Client{Transport: tr}
 }
-
 
 // Set default resolver for HTTP client
 func dialContext(dnsServer string) func(ctx context.Context, network, address string) (net.Conn, error) {

@@ -23,7 +23,7 @@ func init() {
 	if !ok {
 		defaultServer = "https://ppng.io"
 	}
-	RootCmd.PersistentFlags().StringVarP(&serverUrl,  "server",  "s", defaultServer, "Piping Server URL")
+	RootCmd.PersistentFlags().StringVarP(&serverUrl, "server", "s", defaultServer, "Piping Server URL")
 	RootCmd.PersistentFlags().StringVar(&dnsServer, "dns-server", "", "DNS server (e.g. 1.1.1.1:53)")
 	// NOTE: --insecure, -k is inspired by curl
 	RootCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "k", false, "Allow insecure server connections when using SSL")
