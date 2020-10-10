@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
@@ -51,10 +52,10 @@ var clientCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := getHttpClient(insecure)
+		httpClient := util.CreateHttpClient(insecure)
 		if dnsServer != "" {
 			// Set DNS resolver
-			httpClient.Transport.(*http.Transport).DialContext = dialContext(dnsServer)
+			httpClient.Transport.(*http.Transport).DialContext = util.CreateDialContext(dnsServer)
 		}
 		_, err = httpClient.Post(url1, "application/octet-stream", conn)
 		if err != nil {
