@@ -10,15 +10,25 @@ Tunnel over Piping Server
 
 Usage:
   piping-tunnel [flags]
+  piping-tunnel [command]
+
+Available Commands:
+  client      Run client-host
+  help        Help about any command
+  server      Run server-host
 
 Flags:
       --dns-server string   DNS server (e.g. 1.1.1.1:53)
   -h, --help                help for piping-tunnel
   -k, --insecure            Allow insecure server connections when using SSL
-  -p, --port int            TCP port of server host
   -s, --server string       Piping Server URL (default "https://ppng.io")
   -v, --version             show version
+
+Use "piping-tunnel [command] --help" for more information about a command.
 ```
 
 ## References
 - (Japanese) <https://qiita.com/Cryolite/items/ed8fa237dd8eab54ef2f>
+
+## Related work
+- [portwarp](https://github.com/essa/portwarp)
