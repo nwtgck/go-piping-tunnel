@@ -21,6 +21,7 @@ Flags:
       --dns-server string   DNS server (e.g. 1.1.1.1:53)
   -h, --help                help for piping-tunnel
   -k, --insecure            Allow insecure server connections when using SSL
+      --progress            Show progress (default true)
   -s, --server string       Piping Server URL (default "https://ppng.io")
   -v, --version             show version
 
