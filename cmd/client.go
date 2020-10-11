@@ -52,6 +52,8 @@ var clientCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		// Refuse another new connection
+		ln.Close()
 		httpClient := util.CreateHttpClient(insecure)
 		if dnsServer != "" {
 			// Set DNS resolver
