@@ -24,13 +24,10 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run server-host",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 2 {
-			return fmt.Errorf("Path 1 and path 2 are required\n")
+		path1, path2, err := generatePaths(args)
+		if err != nil {
+			return err
 		}
-
-		path1 := args[0]
-		path2 := args[1]
-
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
 		if err != nil {
 			return err

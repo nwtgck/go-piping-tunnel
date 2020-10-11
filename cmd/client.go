@@ -24,16 +24,15 @@ var clientCmd = &cobra.Command{
 	Use:   "client",
 	Short: "Run client-host",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 2 {
-			return fmt.Errorf("Path 1 and path 2 are required\n")
+		path1, path2, err := generatePaths(args)
+		if err != nil {
+			return err
 		}
 		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", clientHostPort))
 		if err != nil {
 			return err
 		}
 
-		path1 := args[0]
-		path2 := args[1]
 		url1, err := util.UrlJoin(serverUrl, path1)
 		if err != nil {
 			return err
