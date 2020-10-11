@@ -31,11 +31,11 @@ var clientCmd = &cobra.Command{
 
 		path1 := args[0]
 		path2 := args[1]
-		url1, err := urlJoin(serverUrl, path1)
+		url1, err := util.UrlJoin(serverUrl, path1)
 		if err != nil {
 			return err
 		}
-		url2, err := urlJoin(serverUrl, path2)
+		url2, err := util.UrlJoin(serverUrl, path2)
 		if err != nil {
 			return err
 		}

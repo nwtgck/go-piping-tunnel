@@ -5,8 +5,20 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"net/url"
+	"path"
 	"time"
 )
+
+// (base: https://stackoverflow.com/a/34668130/2885946)
+func UrlJoin(s string, p string) (string, error) {
+	u, err := url.Parse(s)
+	if err != nil {
+		return "", err
+	}
+	u.Path = path.Join(u.Path, p)
+	return u.String(), nil
+}
 
 // Generate HTTP client
 func CreateHttpClient(insecure bool) *http.Client {

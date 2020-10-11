@@ -7,8 +7,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
-	"path"
 	"strings"
 )
 
@@ -42,7 +40,7 @@ var serverCmd = &cobra.Command{
 			httpClient.Transport.(*http.Transport).DialContext = util.CreateDialContext(dnsServer)
 		}
 
-		url2, err := urlJoin(serverUrl, path2)
+		url2, err := util.UrlJoin(serverUrl, path2)
 		if err != nil {
 			panic(err)
 		}
@@ -51,7 +49,7 @@ var serverCmd = &cobra.Command{
 			panic(err)
 		}
 
-		url1, err := urlJoin(serverUrl, path1)
+		url1, err := util.UrlJoin(serverUrl, path1)
 		if err != nil {
 			panic(err)
 		}
@@ -82,14 +80,4 @@ var serverCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-// (base: https://stackoverflow.com/a/34668130/2885946)
-func urlJoin(s string, p string) (string, error) {
-	u, err := url.Parse(s)
-	if err != nil {
-		return "", err
-	}
-	u.Path = path.Join(u.Path, p)
-	return u.String(), nil
 }
