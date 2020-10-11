@@ -44,17 +44,16 @@ var clientCmd = &cobra.Command{
 		}
 		// (from: https://stackoverflow.com/a/43425461)
 		clientHostPort = ln.Addr().(*net.TCPAddr).Port
-		fmt.Printf("Client host listening on %d ...\n", clientHostPort)
-		fmt.Println("==== Server host (socat + curl) ====")
+		fmt.Printf("[INFO] Client host listening on %d ...\n", clientHostPort)
+		fmt.Println("[INFO] Hint: Server host (socat + curl)")
 		fmt.Printf(
-			"socat 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s' TCP:127.0.0.1:<YOUR PORT>\n",
+			"  socat 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s' TCP:127.0.0.1:<YOUR PORT>\n",
 			strings.Replace(url1, ":", "\\:", -1),
 			strings.Replace(url2, ":", "\\:", -1),
 		)
-		fmt.Println()
-		fmt.Println("==== Server host (piping-tunnel) ====")
+		fmt.Println("[INFO] Hint: Server host (piping-tunnel)")
 		fmt.Printf(
-			"piping-tunnel -s %s server -p <YOUR PORT> %s %s\n",
+			"  piping-tunnel -s %s server -p <YOUR PORT> %s %s\n",
 			serverUrl,
 			path1,
 			path2,
@@ -63,6 +62,7 @@ var clientCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		fmt.Println("[INFO] accepted")
 		// Refuse another new connection
 		ln.Close()
 		httpClient := util.CreateHttpClient(insecure)
@@ -100,10 +100,11 @@ var clientCmd = &cobra.Command{
 			writer = io.MultiWriter(conn, progress)
 		}
 		_, err = io.Copy(writer, res.Body)
+		fmt.Println()
 		if err != nil {
 			return err
 		}
-		fmt.Println("Finished")
+		fmt.Println("[INFO] Finished")
 
 		return nil
 	},

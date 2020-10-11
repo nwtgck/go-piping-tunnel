@@ -73,16 +73,15 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("==== Client host (socat + curl) ====")
+		fmt.Println("[INFO] Hint: Client host (socat + curl)")
 		fmt.Printf(
-			"socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
+			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
 			strings.Replace(url2, ":", "\\:", -1),
 			strings.Replace(url1, ":", "\\:", -1),
 		)
-		fmt.Println()
-		fmt.Println("==== Client host (piping-tunnel) ====")
+		fmt.Println("[INFO] Hint: Client host (piping-tunnel)")
 		fmt.Printf(
-			"piping-tunnel -s %s client -p 31376 %s %s\n",
+			"  piping-tunnel -s %s client -p 31376 %s %s\n",
 			serverUrl,
 			path1,
 			path2,
@@ -97,10 +96,11 @@ var serverCmd = &cobra.Command{
 			writer = io.MultiWriter(conn, progress)
 		}
 		_, err = io.Copy(writer, res.Body)
+		fmt.Println()
 		if err != nil {
 			return err
 		}
-		fmt.Println("Finished")
+		fmt.Println("[INFO] Finished")
 
 		return nil
 	},
