@@ -2,12 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 )
 
 var serverHostPort int
@@ -39,12 +42,29 @@ var serverCmd = &cobra.Command{
 			// Set DNS resolver
 			httpClient.Transport.(*http.Transport).DialContext = util.CreateDialContext(dnsServer)
 		}
+		var progress *io_progress.IOProgress = nil
+		if showProgress {
+			p := io_progress.NewIOProgress(conn, os.Stderr, func(progress *io_progress.IOProgress) string {
+				return fmt.Sprintf(
+					"↑ %s (%s/s) | ↓ %s (%s/s)",
+					util.HumanizeBytes(float64(progress.CurrReadBytes)),
+					util.HumanizeBytes(float64(progress.CurrReadBytes)/time.Since(progress.StartTime).Seconds()),
+					util.HumanizeBytes(float64(progress.CurrWriteBytes)),
+					util.HumanizeBytes(float64(progress.CurrWriteBytes)/time.Since(progress.StartTime).Seconds()),
+				)
+			})
+			progress = &p
+		}
 
 		url2, err := util.UrlJoin(serverUrl, path2)
 		if err != nil {
 			panic(err)
 		}
-		_, err = httpClient.Post(url2, "application/octet-stream", conn)
+		var reader io.Reader = conn
+		if progress != nil {
+			reader = progress
+		}
+		_, err = httpClient.Post(url2, "application/octet-stream", reader)
 		if err != nil {
 			panic(err)
 		}
@@ -72,7 +92,11 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		_, err = io.Copy(conn, res.Body)
+		var writer io.Writer = conn
+		if progress != nil {
+			writer = io.MultiWriter(conn, progress)
+		}
+		_, err = io.Copy(writer, res.Body)
 		if err != nil {
 			panic(err)
 		}
