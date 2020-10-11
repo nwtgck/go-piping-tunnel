@@ -61,6 +61,14 @@ var serverCmd = &cobra.Command{
 			strings.Replace(url2, ":", "\\:", -1),
 			strings.Replace(url1, ":", "\\:", -1),
 		)
+		fmt.Println()
+		fmt.Println("==== Client host (piping-tunnel) ====")
+		fmt.Printf(
+			"piping-tunnel -s %s client -p 31376 %s %s\n",
+			serverUrl,
+			path1,
+			path2,
+		)
 
 		res, err := httpClient.Get(url1)
 		if err != nil {
