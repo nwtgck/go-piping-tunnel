@@ -33,7 +33,7 @@ var serverCmd = &cobra.Command{
 
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
 		if err != nil {
-			panic(err)
+			return err
 		}
 		defer conn.Close()
 
@@ -58,7 +58,7 @@ var serverCmd = &cobra.Command{
 
 		url2, err := util.UrlJoin(serverUrl, path2)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		var reader io.Reader = conn
 		if progress != nil {
@@ -66,12 +66,12 @@ var serverCmd = &cobra.Command{
 		}
 		_, err = httpClient.Post(url2, "application/octet-stream", reader)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		url1, err := util.UrlJoin(serverUrl, path1)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		fmt.Println("==== Client host (socat + curl) ====")
 		fmt.Printf(
@@ -90,7 +90,7 @@ var serverCmd = &cobra.Command{
 
 		res, err := httpClient.Get(url1)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		var writer io.Writer = conn
 		if progress != nil {
@@ -98,7 +98,7 @@ var serverCmd = &cobra.Command{
 		}
 		_, err = io.Copy(writer, res.Body)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		fmt.Println("Finished")
 
