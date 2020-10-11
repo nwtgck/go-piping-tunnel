@@ -15,6 +15,7 @@ var serverUrl string
 var insecure bool
 var dnsServer string
 var showsVersion bool
+var showProgress bool
 
 func init() {
 	cobra.OnInitialize()
@@ -27,6 +28,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&dnsServer, "dns-server", "", "DNS server (e.g. 1.1.1.1:53)")
 	// NOTE: --insecure, -k is inspired by curl
 	RootCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "k", false, "Allow insecure server connections when using SSL")
+	RootCmd.PersistentFlags().BoolVarP(&showProgress, "progress", "", true, "Show progress")
 	RootCmd.Flags().BoolVarP(&showsVersion, "version", "v", false, "show version")
 }
 
