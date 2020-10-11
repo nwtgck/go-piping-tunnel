@@ -44,12 +44,11 @@ func (progress *IOProgress) displayIfShould() {
 	if time.Since(progress.lastDisplayTime).Milliseconds() < 1000 {
 		return
 	}
-	// Clear
-	fmt.Fprintf(progress.messageWriter, strings.Repeat(" ", progress.maxMessageLen)+"\r")
 	// Make message
 	message := progress.makeMessage(progress)
-	// Print message
-	fmt.Fprintf(progress.messageWriter, message)
+	// Clear & show message
+	spaces := strings.Repeat(" ", progress.maxMessageLen)
+	fmt.Fprintf(progress.messageWriter, "\r"+spaces+"\r"+message)
 	if len(message) > progress.maxMessageLen {
 		progress.maxMessageLen = len(message)
 	}
