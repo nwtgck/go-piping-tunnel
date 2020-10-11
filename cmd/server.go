@@ -24,7 +24,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run server-host",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		path1, path2, err := generatePaths(args)
+		clientToServerPath, serverToClientPath, err := generatePaths(args)
 		if err != nil {
 			return err
 		}
@@ -53,7 +53,7 @@ var serverCmd = &cobra.Command{
 			progress = &p
 		}
 
-		url2, err := util.UrlJoin(serverUrl, path2)
+		serverToClientUrl, err := util.UrlJoin(serverUrl, serverToClientPath)
 		if err != nil {
 			return err
 		}
@@ -61,30 +61,30 @@ var serverCmd = &cobra.Command{
 		if progress != nil {
 			reader = progress
 		}
-		_, err = httpClient.Post(url2, "application/octet-stream", reader)
+		_, err = httpClient.Post(serverToClientUrl, "application/octet-stream", reader)
 		if err != nil {
 			return err
 		}
 
-		url1, err := util.UrlJoin(serverUrl, path1)
+		clientToServerUrl, err := util.UrlJoin(serverUrl, clientToServerPath)
 		if err != nil {
 			return err
 		}
 		fmt.Println("[INFO] Hint: Client host (socat + curl)")
 		fmt.Printf(
 			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
-			strings.Replace(url2, ":", "\\:", -1),
-			strings.Replace(url1, ":", "\\:", -1),
+			strings.Replace(serverToClientUrl, ":", "\\:", -1),
+			strings.Replace(clientToServerUrl, ":", "\\:", -1),
 		)
 		fmt.Println("[INFO] Hint: Client host (piping-tunnel)")
 		fmt.Printf(
 			"  piping-tunnel -s %s client -p 31376 %s %s\n",
 			serverUrl,
-			path1,
-			path2,
+			clientToServerPath,
+			serverToClientPath,
 		)
 
-		res, err := httpClient.Get(url1)
+		res, err := httpClient.Get(clientToServerUrl)
 		if err != nil {
 			return err
 		}

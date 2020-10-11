@@ -24,7 +24,7 @@ var clientCmd = &cobra.Command{
 	Use:   "client",
 	Short: "Run client-host",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		path1, path2, err := generatePaths(args)
+		clientToServerPath, serverToClientPath, err := generatePaths(args)
 		if err != nil {
 			return err
 		}
@@ -33,11 +33,11 @@ var clientCmd = &cobra.Command{
 			return err
 		}
 
-		url1, err := util.UrlJoin(serverUrl, path1)
+		clientToServerUrl, err := util.UrlJoin(serverUrl, clientToServerPath)
 		if err != nil {
 			return err
 		}
-		url2, err := util.UrlJoin(serverUrl, path2)
+		serverToClientUrl, err := util.UrlJoin(serverUrl, serverToClientPath)
 		if err != nil {
 			return err
 		}
@@ -47,15 +47,15 @@ var clientCmd = &cobra.Command{
 		fmt.Println("[INFO] Hint: Server host (socat + curl)")
 		fmt.Printf(
 			"  socat 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s' TCP:127.0.0.1:<YOUR PORT>\n",
-			strings.Replace(url1, ":", "\\:", -1),
-			strings.Replace(url2, ":", "\\:", -1),
+			strings.Replace(clientToServerUrl, ":", "\\:", -1),
+			strings.Replace(serverToClientUrl, ":", "\\:", -1),
 		)
 		fmt.Println("[INFO] Hint: Server host (piping-tunnel)")
 		fmt.Printf(
 			"  piping-tunnel -s %s server -p <YOUR PORT> %s %s\n",
 			serverUrl,
-			path1,
-			path2,
+			clientToServerPath,
+			serverToClientPath,
 		)
 		conn, err := ln.Accept()
 		if err != nil {
@@ -86,11 +86,11 @@ var clientCmd = &cobra.Command{
 		if progress != nil {
 			reader = progress
 		}
-		_, err = httpClient.Post(url1, "application/octet-stream", reader)
+		_, err = httpClient.Post(clientToServerUrl, "application/octet-stream", reader)
 		if err != nil {
 			return err
 		}
-		res, err := httpClient.Get(url2)
+		res, err := httpClient.Get(serverToClientUrl)
 		if err != nil {
 			return err
 		}
