@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
+	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
 	"io"
@@ -25,6 +26,10 @@ var clientCmd = &cobra.Command{
 	Short: "Run client-host",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clientToServerPath, serverToClientPath, err := generatePaths(args)
+		if err != nil {
+			return err
+		}
+		headers, err := piping_tunnel_util.ParseKeyValueStrings(headerKeyValueStrs)
 		if err != nil {
 			return err
 		}
@@ -86,14 +91,26 @@ var clientCmd = &cobra.Command{
 		if progress != nil {
 			reader = progress
 		}
-		_, err = httpClient.Post(clientToServerUrl, "application/octet-stream", reader)
+		req, err := http.NewRequest("POST", clientToServerUrl, reader)
 		if err != nil {
 			return err
 		}
-		res, err := httpClient.Get(serverToClientUrl)
+		req.Header.Set("Content-Type", "application/octet-stream")
+		for _, kv := range headers {
+			req.Header.Set(kv.Key, kv.Value)
+		}
+		_, err = httpClient.Do(req)
 		if err != nil {
 			return err
 		}
+		req, err = http.NewRequest("GET", serverToClientUrl, nil)
+		if err != nil {
+			return err
+		}
+		for _, kv := range headers {
+			req.Header.Set(kv.Key, kv.Value)
+		}
+		res, err := httpClient.Do(req)
 		var writer io.Writer = conn
 		if progress != nil {
 			writer = io.MultiWriter(conn, progress)
