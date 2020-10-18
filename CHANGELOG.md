@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.2.1] - 2020-10-18
+### Added
+* Add --header flag to specify HTTP header
+
 ## [0.2.0] - 2020-10-12
 ### Changed
 * Change server-host as "server" subcommand, not root command
@@ -18,5 +22,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 * Initial release
 
-[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.1.0...v0.2.0
