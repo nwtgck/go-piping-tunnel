@@ -66,6 +66,7 @@ Global Flags:
 ```
 
 ## References
+The idea of tunneling over Piping Server was proposed by [@Cryolite](https://github.com/Cryolite). Thanks!  
 - (Japanese) <https://qiita.com/Cryolite/items/ed8fa237dd8eab54ef2f>
 
 ## Related work
