@@ -15,10 +15,12 @@ import (
 )
 
 var clientHostPort int
+var clientServerToClientBuffSize uint
 
 func init() {
 	RootCmd.AddCommand(clientCmd)
 	clientCmd.Flags().IntVarP(&clientHostPort, "port", "p", 0, "TCP port of client host")
+	clientCmd.Flags().UintVarP(&clientServerToClientBuffSize, "s-to-c-buf-size", "", 16, "Buffer size of server-to-client")
 }
 
 var clientCmd = &cobra.Command{
@@ -115,7 +117,8 @@ var clientCmd = &cobra.Command{
 		if progress != nil {
 			writer = io.MultiWriter(conn, progress)
 		}
-		_, err = io.Copy(writer, res.Body)
+		var buf = make([]byte, clientServerToClientBuffSize)
+		_, err = io.CopyBuffer(writer, res.Body, buf)
 		fmt.Println()
 		if err != nil {
 			return err
