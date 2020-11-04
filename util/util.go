@@ -23,10 +23,12 @@ func UrlJoin(s string, p string) (string, error) {
 }
 
 // Generate HTTP client
-func CreateHttpClient(insecure bool) *http.Client {
+func CreateHttpClient(insecure bool, writeBufSize int, readBufSize int) *http.Client {
 	// Set insecure or not
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
+		WriteBufferSize: writeBufSize,
+		ReadBufferSize:  readBufSize,
 	}
 	return &http.Client{Transport: tr}
 }

@@ -39,7 +39,7 @@ var serverCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		httpClient := util.CreateHttpClient(insecure)
+		httpClient := util.CreateHttpClient(insecure, httpWriteBufSize, httpReadBufSize)
 		if dnsServer != "" {
 			// Set DNS resolver
 			httpClient.Transport.(*http.Transport).DialContext = util.CreateDialContext(dnsServer)

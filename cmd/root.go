@@ -17,6 +17,8 @@ var dnsServer string
 var showsVersion bool
 var showProgress bool
 var headerKeyValueStrs []string
+var httpWriteBufSize int
+var httpReadBufSize int
 
 func init() {
 	cobra.OnInitialize()
@@ -30,6 +32,8 @@ func init() {
 	// NOTE: --insecure, -k is inspired by curl
 	RootCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "k", false, "Allow insecure server connections when using SSL")
 	RootCmd.PersistentFlags().StringArrayVarP(&headerKeyValueStrs, "header", "H", []string{}, "HTTP header")
+	RootCmd.PersistentFlags().IntVarP(&httpWriteBufSize, "http-write-buf-size", "", 16, "HTTP write-buffer size in bytes")
+	RootCmd.PersistentFlags().IntVarP(&httpReadBufSize, "http-read-buf-size", "", 16, "HTTP read-buffer size in bytes")
 	RootCmd.PersistentFlags().BoolVarP(&showProgress, "progress", "", true, "Show progress")
 	RootCmd.Flags().BoolVarP(&showsVersion, "version", "v", false, "show version")
 }

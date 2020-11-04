@@ -71,7 +71,7 @@ var clientCmd = &cobra.Command{
 		fmt.Println("[INFO] accepted")
 		// Refuse another new connection
 		ln.Close()
-		httpClient := util.CreateHttpClient(insecure)
+		httpClient := util.CreateHttpClient(insecure, httpWriteBufSize, httpReadBufSize)
 		if dnsServer != "" {
 			// Set DNS resolver
 			httpClient.Transport.(*http.Transport).DialContext = util.CreateDialContext(dnsServer)
