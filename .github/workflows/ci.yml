@@ -31,14 +31,17 @@ jobs:
       run: docker run -d -p 2022:22 --init ssh-server
     - name: Wait for running SSH server
       run: sleep 3
+    - name: Run Piping Server
+      run: docker run -d -p 8080:8080 nwtgck/piping-server:v1.1.3
+    - name: Wait for running Piping server
+      run: sleep 3
     - uses: actions/checkout@v2
     - name: Set up Go 1.x
       uses: actions/setup-go@v2
       with:
         go-version: ^1.15
     - run: go build -o piping-tunnel main/main.go
-    # TODO: Use local Piping Server
-    - run: ./piping-tunnel server -p 2022 xxx yyy &
-    - run: ./piping-tunnel client -p 3322 xxx yyy &
+    - run: ./piping-tunnel -s http://localhost:8080 server -p 2022 xxx yyy &
+    - run: ./piping-tunnel -s http://localhost:8080 client -p 3322 xxx yyy &
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
