@@ -1,5 +1,5 @@
 # piping-tunnel
-[![CircleCI](https://circleci.com/gh/nwtgck/go-piping-tunnel.svg?style=shield)](https://app.circleci.com/pipelines/github/nwtgck/go-piping-tunnel)
+![CI](https://github.com/nwtgck/go-piping-tunnel/workflows/CI/badge.svg) [![CircleCI](https://circleci.com/gh/nwtgck/go-piping-tunnel.svg?style=shield)](https://app.circleci.com/pipelines/github/nwtgck/go-piping-tunnel)
 
 Tunneling over HTTP with [Piping Server](https://github.com/nwtgck/piping-server) 
 
