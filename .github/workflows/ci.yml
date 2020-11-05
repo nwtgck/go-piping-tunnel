@@ -1,0 +1,44 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  operational_test:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Build SSH server Dockerfile
+      run: |
+        docker build -t ssh-server - <<'EOS'
+        FROM ubuntu:18.04
+        RUN apt update
+        RUN apt install -y openssh-server
+        RUN mkdir /var/run/sshd
+        
+        # (base(ja): https://qiita.com/FGtatsuro/items/4893dfb138f70d972904)
+        RUN useradd -m guest
+        RUN passwd -d guest
+        RUN sed -ri 's/^#?PermitEmptyPasswords\s+.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config
+        RUN sed -ri 's/^#?UsePAM\s+.*/UsePAM no/' /etc/ssh/sshd_config
+        
+        # SSH login fix. Otherwise user is kicked off after login
+        RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+        
+        ENV NOTVISIBLE "in users profile"
+        RUN echo "export VISIBLE=now" >> /etc/profile
+        ENTRYPOINT [ "/usr/sbin/sshd", "-D" ]
+        EOS
+    - name: Run SSH Server
+      run: docker run -d -p 2022:22 --init ssh-server
+    - name: Wait for running SSH server
+      run: sleep 3
+    - uses: actions/checkout@v2
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+    - run: go build -o piping-tunnel main/main.go
+    # TODO: Use local Piping Server
+    - run: ./piping-tunnel server -p 2022 xxx yyy &
+    - run: ./piping-tunnel client -p 3322 xxx yyy &
+    # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+    - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
