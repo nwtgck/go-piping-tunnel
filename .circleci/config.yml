@@ -33,10 +33,11 @@ jobs:
                 platform_split=(${platform//\// })
                 export GOOS=${platform_split[0]}
                 export GOARCH=${platform_split[1]}
+                [ $GOOS = "windows" ] && EXTENSION='.exe' || EXTENSION=''
                 BUILD_PATH=piping-tunnel-$GOOS-$GOARCH
                 mkdir $BUILD_PATH
                 # Build
-                go build -o $BUILD_PATH/piping-tunnel main/main.go
+                go build -o "${BUILD_PATH}/piping-tunnel${EXTENSION}" main/main.go
                 # Create .zip
                 zip -r $DIST/$BUILD_PATH.zip $BUILD_PATH
                 # Create .tar.gz
