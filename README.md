@@ -42,6 +42,7 @@ Flags:
       --c-to-s-buf-size uint   Buffer size of client-to-server in bytes (default 16)
   -h, --help                   help for server
   -p, --port int               TCP port of server host
+      --yamux                  Multiplex connection by hashicorp/yamux
 
 Global Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
@@ -64,6 +65,7 @@ Flags:
   -h, --help                   help for client
   -p, --port int               TCP port of client host
       --s-to-c-buf-size uint   Buffer size of server-to-client in bytes (default 16)
+      --yamux                  Multiplex connection by hashicorp/yamux
 
 Global Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
