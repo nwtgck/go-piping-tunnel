@@ -114,21 +114,27 @@ var clientCmd = &cobra.Command{
 	},
 }
 
-// TODO: proper hint when multiplexing
 func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
 	// (from: https://stackoverflow.com/a/43425461)
 	clientHostPort = ln.Addr().(*net.TCPAddr).Port
 	fmt.Printf("[INFO] Client host listening on %d ...\n", clientHostPort)
-	fmt.Println("[INFO] Hint: Server host (socat + curl)")
-	fmt.Printf(
-		"  socat 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s' TCP:127.0.0.1:<YOUR PORT>\n",
-		strings.Replace(clientToServerUrl, ":", "\\:", -1),
-		strings.Replace(serverToClientUrl, ":", "\\:", -1),
-	)
+	if !clientYamux {
+		fmt.Println("[INFO] Hint: Server host (socat + curl)")
+		fmt.Printf(
+			"  socat 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s' TCP:127.0.0.1:<YOUR PORT>\n",
+			strings.Replace(clientToServerUrl, ":", "\\:", -1),
+			strings.Replace(serverToClientUrl, ":", "\\:", -1),
+		)
+	}
 	fmt.Println("[INFO] Hint: Server host (piping-tunnel)")
+	flags := ""
+	if clientYamux {
+		flags += "--yamux "
+	}
 	fmt.Printf(
-		"  piping-tunnel -s %s server -p <YOUR PORT> %s %s\n",
+		"  piping-tunnel -s %s server -p <YOUR PORT> %s%s %s\n",
 		serverUrl,
+		flags,
 		clientToServerPath,
 		serverToClientPath,
 	)

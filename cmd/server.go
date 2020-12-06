@@ -113,18 +113,24 @@ var serverCmd = &cobra.Command{
 	},
 }
 
-// TODO: proper hint when multiplexing
 func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
-	fmt.Println("[INFO] Hint: Client host (socat + curl)")
-	fmt.Printf(
-		"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
-		strings.Replace(serverToClientUrl, ":", "\\:", -1),
-		strings.Replace(clientToServerUrl, ":", "\\:", -1),
-	)
+	if serverYamux {
+		fmt.Println("[INFO] Hint: Client host (socat + curl)")
+		fmt.Printf(
+			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
+			strings.Replace(serverToClientUrl, ":", "\\:", -1),
+			strings.Replace(clientToServerUrl, ":", "\\:", -1),
+		)
+	}
+	flags := ""
+	if serverYamux {
+		flags += "--yamux "
+	}
 	fmt.Println("[INFO] Hint: Client host (piping-tunnel)")
 	fmt.Printf(
-		"  piping-tunnel -s %s client -p 31376 %s %s\n",
+		"  piping-tunnel -s %s client -p 31376 %s%s %s\n",
 		serverUrl,
+		flags,
 		clientToServerPath,
 		serverToClientPath,
 	)
