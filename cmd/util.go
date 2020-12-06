@@ -13,8 +13,10 @@ func generatePaths(args []string) (string, string, error) {
 
 	switch len(args) {
 	case 1:
-		clientToServerPath = fmt.Sprintf("%s/c-to-s", args[0])
-		serverToClientPath = fmt.Sprintf("%s/s-to-c", args[0])
+		// NOTE: "cs": from client-host to server-host
+		clientToServerPath = fmt.Sprintf("%s/cs", args[0])
+		// NOTE: "sc": from server-host to client-host
+		serverToClientPath = fmt.Sprintf("%s/sc", args[0])
 	case 2:
 		clientToServerPath = args[0]
 		serverToClientPath = args[1]
