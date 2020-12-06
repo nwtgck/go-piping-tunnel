@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/nwtgck/go-piping-tunnel/io_progress"
+	"io"
 	"math"
 	"net"
 	"net/http"
@@ -76,4 +78,44 @@ func HumanizeBytes(s float64) string {
 // (from: https://github.com/schollz/progressbar/blob/9c6973820b2153b15d2e6a08d8705ec981fda59f/progressbar.go#L784-L799)
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
+}
+
+type IOProgressReadWriteCloser struct {
+	pw         *io.PipeWriter
+	progress   *io_progress.IOProgress
+	baseDuplex io.ReadWriteCloser
+}
+
+func NewIOProgressReadWriteCloser(duplex io.ReadWriteCloser, messageWriter io.Writer, makeMessage func(progress *io_progress.IOProgress) string) IOProgressReadWriteCloser {
+	pr, pw := io.Pipe()
+	p := io_progress.NewIOProgress(pr, messageWriter, makeMessage)
+	go func() {
+		// TODO: specify buffer
+		io.Copy(duplex, &p)
+	}()
+	return IOProgressReadWriteCloser{
+		pw:         pw,
+		progress:   &p,
+		baseDuplex: duplex,
+	}
+}
+
+func (p IOProgressReadWriteCloser) Read(b []byte) (n int, err error) {
+	n, err = p.baseDuplex.Read(b)
+	if err != nil {
+		return n, err
+	}
+	_, err = p.progress.Write(b[:n])
+	if err != nil {
+		return n, err
+	}
+	return n, nil
+}
+
+func (p IOProgressReadWriteCloser) Write(b []byte) (n int, err error) {
+	return p.pw.Write(b)
+}
+
+func (p IOProgressReadWriteCloser) Close() error {
+	return p.baseDuplex.Close()
 }
