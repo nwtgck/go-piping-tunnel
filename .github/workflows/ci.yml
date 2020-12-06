@@ -45,3 +45,12 @@ jobs:
     - run: ./piping-tunnel -s http://localhost:8080 client -p 3322 xxx yyy &
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
+
+    - name: Run server-host with yamux
+      run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux xxx yyy &
+    - name: Run client-host with yamux
+      run: ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux xxx yyy &
+    # Check whether ssh multiple times
+    # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+    - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost hostname
+    - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
