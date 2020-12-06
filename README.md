@@ -5,7 +5,7 @@ Tunneling over HTTP with [Piping Server](https://github.com/nwtgck/piping-server
 
 ## Help
 
-You can use `$PIPING_SERVER_URL` env to set default Piping Server.
+You can use `$PIPING_SERVER` env to set default Piping Server.
 
 ```txt
 Tunnel over Piping Server
