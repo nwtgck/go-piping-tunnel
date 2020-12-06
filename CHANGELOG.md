@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.4.0] - 2020-12-06
+### Added
+* Multiplexing with [hashicorp/yamux](https://github.com/hashicorp/yamux) and add --yamux flag
+
+### Changed
+* Use ".../cs" and ".../sc" when the number of paths is one for short
+* Rename "$PIPING_SERVER_URL" to "$PIPING_SERVER"
+
 ## [0.3.1] - 2020-11-29
 ### Changed
 * Update dependencies
@@ -36,7 +44,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 * Initial release
 
-[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.2.1...v0.2.2
