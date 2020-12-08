@@ -150,7 +150,7 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 		return err
 	}
 	for {
-		yamuxSession, err := yamuxSession.Accept()
+		yamuxStream, err := yamuxSession.Accept()
 		if err != nil {
 			return err
 		}
@@ -161,12 +161,12 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 		go func() {
 			// TODO: hard code
 			var buf = make([]byte, 16)
-			io.CopyBuffer(yamuxSession, conn, buf)
+			io.CopyBuffer(yamuxStream, conn, buf)
 		}()
 		go func() {
 			// TODO: hard code
 			var buf = make([]byte, 16)
-			io.CopyBuffer(conn, yamuxSession, buf)
+			io.CopyBuffer(conn, yamuxStream, buf)
 		}()
 	}
 	return nil
