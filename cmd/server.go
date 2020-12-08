@@ -114,7 +114,7 @@ var serverCmd = &cobra.Command{
 }
 
 func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
-	if serverYamux {
+	if !serverYamux {
 		fmt.Println("[INFO] Hint: Client host (socat + curl)")
 		fmt.Printf(
 			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
