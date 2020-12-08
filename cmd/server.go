@@ -114,7 +114,7 @@ var serverCmd = &cobra.Command{
 }
 
 func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
-	if serverYamux {
+	if !serverYamux {
 		fmt.Println("[INFO] Hint: Client host (socat + curl)")
 		fmt.Printf(
 			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
@@ -150,7 +150,7 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 		return err
 	}
 	for {
-		yamuxSession, err := yamuxSession.Accept()
+		yamuxStream, err := yamuxSession.Accept()
 		if err != nil {
 			return err
 		}
@@ -159,10 +159,14 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 			return err
 		}
 		go func() {
-			io.Copy(yamuxSession, conn)
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			io.CopyBuffer(yamuxStream, conn, buf)
 		}()
 		go func() {
-			io.Copy(conn, yamuxSession)
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			io.CopyBuffer(conn, yamuxStream, buf)
 		}()
 	}
 	return nil

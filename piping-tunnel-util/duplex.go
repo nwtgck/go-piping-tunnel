@@ -35,7 +35,9 @@ func NewPipingDuplex(httpClient *http.Client, headers []KeyValue, uploadPath, do
 
 	go func() {
 		res, _ := httpClient.Do(req)
-		io.Copy(downloadPw, res.Body)
+		// TODO: hard code
+		var buf = make([]byte, 16)
+		io.CopyBuffer(downloadPw, res.Body, buf)
 	}()
 
 	return &PipingDuplex{

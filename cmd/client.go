@@ -164,12 +164,14 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 			return err
 		}
 		go func() {
-			// TODO: specify buffer
-			io.Copy(yamuxStream, conn)
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			io.CopyBuffer(yamuxStream, conn, buf)
 		}()
 		go func() {
-			// TODO: specify buffer
-			io.Copy(conn, yamuxStream)
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			io.CopyBuffer(conn, yamuxStream, buf)
 		}()
 	}
 	return nil

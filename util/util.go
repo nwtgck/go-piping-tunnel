@@ -90,8 +90,9 @@ func NewIOProgressReadWriteCloser(duplex io.ReadWriteCloser, messageWriter io.Wr
 	pr, pw := io.Pipe()
 	p := io_progress.NewIOProgress(pr, messageWriter, makeMessage)
 	go func() {
-		// TODO: specify buffer
-		io.Copy(duplex, &p)
+		// TODO: hard code
+		var buf = make([]byte, 16)
+		io.CopyBuffer(duplex, &p, buf)
 	}()
 	return IOProgressReadWriteCloser{
 		pw:         pw,
