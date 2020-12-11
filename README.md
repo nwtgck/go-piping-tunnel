@@ -3,6 +3,21 @@
 
 Tunneling over HTTP with [Piping Server](https://github.com/nwtgck/piping-server) 
 
+## Install
+
+### macOS
+```bash
+brew install nwtgck/piping-tunnel/piping-tunnel
+```
+
+### Ubuntu
+```bash
+wget https://github.com/nwtgck/go-piping-tunnel/releases/download/v0.4.2/piping-tunnel-0.4.2-linux-amd64.deb
+dpkg -i piping-tunnel-0.4.2-linux-amd64.deb 
+```
+
+Get more executables in the [releases](https://github.com/nwtgck/go-piping-tunnel/releases).
+
 ## Help
 
 You can use `$PIPING_SERVER` env to set default Piping Server.
