@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.4.2] - 2020-12-1
+### Changed
+* No change (for release)
+
 ## [0.4.1] - 2020-12-08
 ### Changed
 * (internal) Specify buffer sizes
@@ -51,7 +55,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 * Initial release
 
-[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.3.0...v0.3.1
