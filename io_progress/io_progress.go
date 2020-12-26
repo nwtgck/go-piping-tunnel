@@ -28,8 +28,8 @@ func (progress *IOProgress) Read(p []byte) (int, error) {
 	if err != nil {
 		return n, err
 	}
-	progress.displayIfShould()
 	progress.CurrReadBytes += uint64(n)
+	go progress.displayIfShould()
 	return n, nil
 }
 
@@ -39,7 +39,7 @@ func (progress *IOProgress) Write(p []byte) (int, error) {
 		return n, err
 	}
 	progress.CurrWriteBytes += uint64(n)
-	progress.displayIfShould()
+	go progress.displayIfShould()
 	return n, nil
 }
 
