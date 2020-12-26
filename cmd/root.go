@@ -22,7 +22,6 @@ var httpReadBufSize int
 
 func init() {
 	cobra.OnInitialize()
-	RootCmd.AddCommand(serverCmd)
 	defaultServer, ok := os.LookupEnv(ServerUrlEnvName)
 	if !ok {
 		defaultServer = "https://ppng.io"

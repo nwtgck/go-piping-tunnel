@@ -3,6 +3,23 @@
 
 Tunneling over HTTP with [Piping Server](https://github.com/nwtgck/piping-server) 
 
+
+## Install for Windows
+[Download](https://github.com/nwtgck/go-piping-tunnel/releases/download/v0.4.2/piping-tunnel-0.4.2-windows-amd64.zip)
+
+## Install for macOS
+```bash
+brew install nwtgck/piping-tunnel/piping-tunnel
+```
+
+## Install for Ubuntu
+```bash
+wget https://github.com/nwtgck/go-piping-tunnel/releases/download/v0.4.2/piping-tunnel-0.4.2-linux-amd64.deb
+dpkg -i piping-tunnel-0.4.2-linux-amd64.deb 
+```
+
+Get more executables in the [releases](https://github.com/nwtgck/go-piping-tunnel/releases).
+
 ## Help
 
 You can use `$PIPING_SERVER` env to set default Piping Server.
@@ -66,6 +83,28 @@ Flags:
   -p, --port int               TCP port of client host
       --s-to-c-buf-size uint   Buffer size of server-to-client in bytes (default 16)
       --yamux                  Multiplex connection by hashicorp/yamux
+
+Global Flags:
+      --dns-server string         DNS server (e.g. 1.1.1.1:53)
+  -H, --header stringArray        HTTP header
+      --http-read-buf-size int    HTTP read-buffer size in bytes (default 16)
+      --http-write-buf-size int   HTTP write-buffer size in bytes (default 16)
+  -k, --insecure                  Allow insecure server connections when using SSL
+      --progress                  Show progress (default true)
+  -s, --server string             Piping Server URL (default "https://ppng.io")
+```
+
+The following help is for SOCKS5 proxy.
+
+```
+Run SOCKS5 server
+
+Usage:
+  piping-tunnel socks [flags]
+
+Flags:
+  -h, --help    help for socks
+      --yamux   Multiplex connection by hashicorp/yamux
 
 Global Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)

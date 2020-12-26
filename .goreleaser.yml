@@ -40,7 +40,7 @@ release:
   github:
   disable: false
   prerelease: auto
-  name_template: "{{.ProjectName}}-v{{.Version}}"
+  name_template: "v{{.Version}}"
 brews:
   - tap:
       owner: nwtgck
