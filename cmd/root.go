@@ -41,6 +41,23 @@ var RootCmd = &cobra.Command{
 	Use:   os.Args[0],
 	Short: "piping-tunnel",
 	Long:  "Tunnel over Piping Server",
+	Example: `
+Normal:
+  piping-tunnel server -p 22 aaa bbb
+  piping-tunnel client -p 1022 aaa bbb
+
+Short:
+  piping-tunnel server -p 22 aaa
+  piping-tunnel client -p 1022 aaa
+
+Multiplexing:
+  piping-tunnel server -p 22 --yamux aaa bbb
+  piping-tunnel client -p 1022 --yamux aaa bbb
+
+SOCKS5 like VPN:
+  piping-tunnel socks --yamux aaa bbb
+  piping-tunnel client -p 1080 --yamux aaa bbb
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if showsVersion {
 			fmt.Println(version.Version)
