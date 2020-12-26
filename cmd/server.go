@@ -19,6 +19,7 @@ var serverClientToServerBufSize uint
 var serverYamux bool
 
 func init() {
+	RootCmd.AddCommand(serverCmd)
 	serverCmd.Flags().IntVarP(&serverHostPort, "port", "p", 0, "TCP port of server host")
 	serverCmd.MarkFlagRequired("port")
 	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "c-to-s-buf-size", "", 16, "Buffer size of client-to-server in bytes")
