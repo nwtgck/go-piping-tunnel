@@ -26,7 +26,7 @@ func NewPipingDuplex(httpClient *http.Client, headers []KeyValue, uploadPath, do
 		return nil, err
 	}
 
-	downloadReaderChan := make(chan interface{}, 1)
+	downloadReaderChan := make(chan interface{})
 	go func() {
 		req, err = http.NewRequest("GET", downloadPath, nil)
 		if err != nil {
