@@ -8,9 +8,10 @@ import (
 )
 
 type IOProgress struct {
-	io.Reader
+	io.ReadWriteCloser
 	CurrReadBytes   uint64
 	reader          io.Reader
+	writer          io.Writer
 	CurrWriteBytes  uint64
 	StartTime       time.Time
 	messageWriter   io.Writer
@@ -19,8 +20,8 @@ type IOProgress struct {
 	lastDisplayTime time.Time
 }
 
-func NewIOProgress(reader io.Reader, messageWriter io.Writer, makeMessage func(progress *IOProgress) string) IOProgress {
-	return IOProgress{reader: reader, messageWriter: messageWriter, StartTime: time.Now(), makeMessage: makeMessage}
+func NewIOProgress(reader io.Reader, writer io.Writer, messageWriter io.Writer, makeMessage func(progress *IOProgress) string) *IOProgress {
+	return &IOProgress{reader: reader, writer: writer, messageWriter: messageWriter, StartTime: time.Now(), makeMessage: makeMessage}
 }
 
 func (progress *IOProgress) Read(p []byte) (int, error) {
@@ -34,10 +35,25 @@ func (progress *IOProgress) Read(p []byte) (int, error) {
 }
 
 func (progress *IOProgress) Write(p []byte) (int, error) {
-	l := len(p)
-	progress.CurrWriteBytes += uint64(l)
+	n, err := progress.writer.Write(p)
+	if err != nil {
+		return n, err
+	}
+	progress.CurrWriteBytes += uint64(n)
 	progress.displayIfShould()
-	return l, nil
+	return n, nil
+}
+
+func (progress *IOProgress) Close() error {
+	if r, ok := progress.reader.(io.ReadCloser); ok {
+		if err := r.Close(); err != nil {
+			return err
+		}
+	}
+	if w, ok := progress.writer.(io.WriteCloser); ok {
+		return w.Close()
+	}
+	return nil
 }
 
 func (progress *IOProgress) displayIfShould() {

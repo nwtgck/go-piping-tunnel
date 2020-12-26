@@ -8,6 +8,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -67,8 +68,7 @@ var serverCmd = &cobra.Command{
 		defer conn.Close()
 		var progress *io_progress.IOProgress = nil
 		if showProgress {
-			p := io_progress.NewIOProgress(conn, os.Stderr, makeProgressMessage)
-			progress = &p
+			progress = io_progress.NewIOProgress(conn, ioutil.Discard, os.Stderr, makeProgressMessage)
 		}
 		var reader io.Reader = conn
 		if progress != nil {
@@ -144,7 +144,7 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 	}
 	var readWriteCloser io.ReadWriteCloser = duplex
 	if showProgress {
-		readWriteCloser = util.NewIOProgressReadWriteCloser(duplex, os.Stderr, makeProgressMessage)
+		readWriteCloser = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
 	yamuxSession, err := yamux.Server(readWriteCloser, nil)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
+	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
@@ -93,7 +94,7 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 	}
 	var readWriteCloser io.ReadWriteCloser = duplex
 	if showProgress {
-		readWriteCloser = util.NewIOProgressReadWriteCloser(duplex, os.Stderr, makeProgressMessage)
+		readWriteCloser = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
 	yamuxSession, err := yamux.Server(readWriteCloser, nil)
 	if err != nil {
