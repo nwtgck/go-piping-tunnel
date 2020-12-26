@@ -6,7 +6,7 @@ import (
 )
 
 type PipingDuplex struct {
-	downloadReaderChan chan interface{} // io.ReadCloser or error
+	downloadReaderChan <-chan interface{} // io.ReadCloser or error
 	uploadWriter       *io.PipeWriter
 	downloadReader     io.ReadCloser
 }
