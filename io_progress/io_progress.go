@@ -8,7 +8,6 @@ import (
 )
 
 type IOProgress struct {
-	io.ReadWriteCloser
 	CurrReadBytes   uint64
 	reader          io.Reader
 	writer          io.Writer
