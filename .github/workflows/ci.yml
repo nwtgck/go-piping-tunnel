@@ -41,16 +41,23 @@ jobs:
       with:
         go-version: ^1.15
     - run: go build -o piping-tunnel main/main.go
-    - run: ./piping-tunnel -s http://localhost:8080 server -p 2022 xxx yyy &
-    - run: ./piping-tunnel -s http://localhost:8080 client -p 3322 xxx yyy &
+    - run: ./piping-tunnel -s http://localhost:8080 server -p 2022 aaa bbb &
+    - run: ./piping-tunnel -s http://localhost:8080 client -p 3322 aaa bbb &
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
 
     - name: Run server-host with yamux
-      run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux xxx yyy &
+      run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux aaa-yamux bbb-yamux &
     - name: Run client-host with yamux
-      run: ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux xxx yyy &
+      run: ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux aaa-yamux bbb-yamux &
     # Check whether ssh multiple times
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost hostname
     - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
+
+    - name: Run socks with yamux
+      run: ./piping-tunnel -s http://localhost:8080 socks --yamux aaa-socks bbb-socks &
+    - name: Run client-host with yamux
+      run: ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux aaa-socks bbb-socks &
+    # NOTE: Depends on external resource: example.com
+    - run: curl -x socks5h://localhost:1081 https://example.com

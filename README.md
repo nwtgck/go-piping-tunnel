@@ -94,6 +94,28 @@ Global Flags:
   -s, --server string             Piping Server URL (default "https://ppng.io")
 ```
 
+The following help is for SOCKS5 proxy.
+
+```
+Run SOCKS5 server
+
+Usage:
+  piping-tunnel socks [flags]
+
+Flags:
+  -h, --help    help for socks
+      --yamux   Multiplex connection by hashicorp/yamux
+
+Global Flags:
+      --dns-server string         DNS server (e.g. 1.1.1.1:53)
+  -H, --header stringArray        HTTP header
+      --http-read-buf-size int    HTTP read-buffer size in bytes (default 16)
+      --http-write-buf-size int   HTTP write-buffer size in bytes (default 16)
+  -k, --insecure                  Allow insecure server connections when using SSL
+      --progress                  Show progress (default true)
+  -s, --server string             Piping Server URL (default "https://ppng.io")
+```
+
 ## References
 The idea of tunneling over Piping Server was proposed by [@Cryolite](https://github.com/Cryolite). Thanks!  
 - (Japanese) <https://qiita.com/Cryolite/items/ed8fa237dd8eab54ef2f>
