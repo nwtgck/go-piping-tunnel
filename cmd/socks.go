@@ -58,7 +58,7 @@ var socksCmd = &cobra.Command{
 		socks5Conf := &socks5.Config{}
 		socks5Server, err := socks5.New(socks5Conf)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		return socksHandleWithYamux(socks5Server, httpClient, headers, clientToServerUrl, serverToClientUrl)
 	},
