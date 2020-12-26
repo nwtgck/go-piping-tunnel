@@ -98,6 +98,9 @@ var clientCmd = &cobra.Command{
 			req.Header.Set(kv.Key, kv.Value)
 		}
 		res, err := httpClient.Do(req)
+		if err != nil {
+			return err
+		}
 		var writer io.Writer = conn
 		if progress != nil {
 			writer = io.MultiWriter(conn, progress)
@@ -174,5 +177,4 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 			io.CopyBuffer(conn, yamuxStream, buf)
 		}()
 	}
-	return nil
 }

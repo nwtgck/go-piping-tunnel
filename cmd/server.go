@@ -170,5 +170,4 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 			io.CopyBuffer(conn, yamuxStream, buf)
 		}()
 	}
-	return nil
 }
