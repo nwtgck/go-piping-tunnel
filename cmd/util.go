@@ -21,7 +21,7 @@ func generatePaths(args []string) (string, string, error) {
 		clientToServerPath = args[0]
 		serverToClientPath = args[1]
 	default:
-		return "", "", fmt.Errorf("The number of paths should be one or two\n")
+		return "", "", fmt.Errorf("the number of paths should be one or two")
 	}
 	return clientToServerPath, serverToClientPath, nil
 }

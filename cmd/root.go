@@ -38,9 +38,10 @@ func init() {
 }
 
 var RootCmd = &cobra.Command{
-	Use:   os.Args[0],
-	Short: "piping-tunnel",
-	Long:  "Tunnel over Piping Server",
+	Use:          os.Args[0],
+	Short:        "piping-tunnel",
+	Long:         "Tunnel over Piping Server",
+	SilenceUsage: true,
 	Example: fmt.Sprintf(`
 Normal:
   piping-tunnel server -p 22 aaa bbb
