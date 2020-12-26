@@ -174,5 +174,4 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 			io.CopyBuffer(conn, yamuxStream, buf)
 		}()
 	}
-	return nil
 }
