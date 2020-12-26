@@ -6,8 +6,9 @@ import (
 )
 
 type PipingDuplex struct {
-	uploadWriter   *io.PipeWriter
-	downloadReader *io.PipeReader
+	downloadReaderChan chan interface{} // io.ReadCloser or error
+	uploadWriter       *io.PipeWriter
+	downloadReader     io.ReadCloser
 }
 
 func NewPipingDuplex(httpClient *http.Client, headers []KeyValue, uploadPath, downloadPath string) (*PipingDuplex, error) {
@@ -24,29 +25,42 @@ func NewPipingDuplex(httpClient *http.Client, headers []KeyValue, uploadPath, do
 	if err != nil {
 		return nil, err
 	}
-	req, err = http.NewRequest("GET", downloadPath, nil)
-	if err != nil {
-		return nil, err
-	}
-	for _, kv := range headers {
-		req.Header.Set(kv.Key, kv.Value)
-	}
-	downloadPr, downloadPw := io.Pipe()
 
+	downloadReaderChan := make(chan interface{}, 1)
 	go func() {
-		res, _ := httpClient.Do(req)
-		// TODO: hard code
-		var buf = make([]byte, 16)
-		io.CopyBuffer(downloadPw, res.Body, buf)
+		req, err = http.NewRequest("GET", downloadPath, nil)
+		if err != nil {
+			downloadReaderChan <- err
+			return
+		}
+		for _, kv := range headers {
+			req.Header.Set(kv.Key, kv.Value)
+		}
+		res, err := httpClient.Do(req)
+		if err != nil {
+			downloadReaderChan <- err
+			return
+		}
+		downloadReaderChan <- res.Body
 	}()
 
 	return &PipingDuplex{
-		uploadWriter:   uploadPw,
-		downloadReader: downloadPr,
+		downloadReaderChan: downloadReaderChan,
+		uploadWriter:       uploadPw,
 	}, nil
 }
 
 func (pd *PipingDuplex) Read(b []byte) (n int, err error) {
+	if pd.downloadReaderChan != nil {
+		// Get io.ReaderCloser or error
+		result := <-pd.downloadReaderChan
+		// If result is error
+		if err, ok := result.(error); ok {
+			return 0, err
+		}
+		pd.downloadReader = result.(io.ReadCloser)
+		pd.downloadReaderChan = nil
+	}
 	return pd.downloadReader.Read(b)
 }
 

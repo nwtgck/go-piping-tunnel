@@ -5,9 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.6.0] - 2020-12-26
+### Changed
+* (internal) Improve performance when showing the progress bar
+* (internal) Improve performance when using --yamux, reducing unnecessary buffers
+
 ## [0.5.0] - 2020-12-26
 ### Added
-* add "socks" subcommand for SOCKS5 proxy
+* Add "socks" subcommand for SOCKS5 proxy
 
 ## [0.4.2] - 2020-12-11
 ### Changed
@@ -59,7 +64,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 * Initial release
 
-[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.4.0...v0.4.1
