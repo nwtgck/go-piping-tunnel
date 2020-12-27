@@ -144,7 +144,7 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 }
 
 func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := piping_tunnel_util.NewPipingDuplex(httpClient, headers, clientToServerUrl, serverToClientUrl)
+	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, clientToServerUrl, serverToClientUrl)
 	if err != nil {
 		return err
 	}

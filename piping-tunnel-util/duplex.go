@@ -12,7 +12,7 @@ type PipingDuplex struct {
 	downloadReader     io.ReadCloser
 }
 
-func NewPipingDuplex(httpClient *http.Client, headers []KeyValue, uploadPath, downloadPath string) (*PipingDuplex, error) {
+func DuplexConnect(httpClient *http.Client, headers []KeyValue, uploadPath, downloadPath string) (*PipingDuplex, error) {
 	uploadPr, uploadPw := io.Pipe()
 	req, err := http.NewRequest("POST", uploadPath, uploadPr)
 	if err != nil {
