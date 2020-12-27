@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/yamux"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
-	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
@@ -19,12 +18,16 @@ import (
 var clientHostPort int
 var clientServerToClientBufSize uint
 var clientYamux bool
+var clientOpenPGPSymmetricallyEncrypts bool
+var clientOpenPGPSymmetricallyEncryptPassphrase string
 
 func init() {
 	RootCmd.AddCommand(clientCmd)
 	clientCmd.Flags().IntVarP(&clientHostPort, "port", "p", 0, "TCP port of client host")
 	clientCmd.Flags().UintVarP(&clientServerToClientBufSize, "s-to-c-buf-size", "", 16, "Buffer size of server-to-client in bytes")
 	clientCmd.Flags().BoolVarP(&clientYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
+	clientCmd.Flags().BoolVarP(&clientOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt with OpenPGP")
+	clientCmd.Flags().StringVarP(&clientOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
 }
 
 var clientCmd = &cobra.Command{
@@ -150,8 +153,14 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 	if err != nil {
 		return err
 	}
-	// TODO: Hard code: passphrase
-	duplex, err = openpgp_duplex.NewSymmetricallyDuplex(duplex, duplex, []byte("mypass"))
+	// If encryption is enabled
+	if clientOpenPGPSymmetricallyEncrypts {
+		// Encrypt
+		duplex, err = openPGPEncryptedDuplex(duplex, clientOpenPGPSymmetricallyEncryptPassphrase)
+		if err != nil {
+			return err
+		}
+	}
 	if err != nil {
 		return err
 	}

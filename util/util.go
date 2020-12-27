@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/mattn/go-tty"
 	"math"
 	"net"
 	"net/http"
@@ -95,4 +96,18 @@ func CombineErrors(e1 error, e2 error) error {
 		return e1
 	}
 	return &CombinedError{e1: e1, e2: e2}
+}
+
+func InputPassphrase() (string, error) {
+	tty, err := tty.Open()
+	if err != nil {
+		return "", err
+	}
+	defer tty.Close()
+	fmt.Fprint(tty.Output(), "Passphrase: ")
+	passphrase, err := tty.ReadPasswordNoEcho()
+	if err != nil {
+		return "", err
+	}
+	return passphrase, nil
 }

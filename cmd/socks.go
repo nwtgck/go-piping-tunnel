@@ -5,7 +5,6 @@ import (
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
-	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
@@ -16,10 +15,14 @@ import (
 )
 
 var socksYamux bool
+var socksOpenPGPSymmetricallyEncrypts bool
+var socksOpenPGPSymmetricallyEncryptPassphrase string
 
 func init() {
 	RootCmd.AddCommand(socksCmd)
 	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
+	socksCmd.Flags().BoolVarP(&socksOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt with OpenPGP")
+	socksCmd.Flags().StringVarP(&socksOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
 }
 
 var socksCmd = &cobra.Command{
@@ -94,8 +97,14 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 	if err != nil {
 		return err
 	}
-	// TODO: Hard code: passphrase
-	duplex, err = openpgp_duplex.NewSymmetricallyDuplex(duplex, duplex, []byte("mypass"))
+	// If encryption is enabled
+	if socksOpenPGPSymmetricallyEncrypts {
+		// Encrypt
+		duplex, err = openPGPEncryptedDuplex(duplex, socksOpenPGPSymmetricallyEncryptPassphrase)
+		if err != nil {
+			return err
+		}
+	}
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
+	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"io"
 	"time"
 )
 
@@ -34,4 +36,23 @@ func makeProgressMessage(progress *io_progress.IOProgress) string {
 		util.HumanizeBytes(float64(progress.CurrWriteBytes)),
 		util.HumanizeBytes(float64(progress.CurrWriteBytes)/time.Since(progress.StartTime).Seconds()),
 	)
+}
+
+func openPGPEncryptedDuplex(duplex io.ReadWriteCloser, passphrase string) (io.ReadWriteCloser, error) {
+	// If the passphrase is empty
+	if passphrase == "" {
+		var err error
+		// Get user-input passphrase
+		passphrase, err = util.InputPassphrase()
+		if err != nil {
+			return nil, err
+		}
+	}
+	// Encrypt
+	duplex, err := openpgp_duplex.NewSymmetricallyDuplex(duplex, duplex, []byte(passphrase))
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("[INFO] End-to-end encryption with OpenPGP")
+	return duplex, nil
 }

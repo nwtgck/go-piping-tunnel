@@ -18,6 +18,8 @@ import (
 var serverHostPort int
 var serverClientToServerBufSize uint
 var serverYamux bool
+var serverOpenPGPSymmetricallyEncrypts bool
+var serverOpenPGPSymmetricallyEncryptPassphrase string
 
 func init() {
 	RootCmd.AddCommand(serverCmd)
@@ -25,6 +27,8 @@ func init() {
 	serverCmd.MarkFlagRequired("port")
 	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "c-to-s-buf-size", "", 16, "Buffer size of client-to-server in bytes")
 	serverCmd.Flags().BoolVarP(&serverYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
+	serverCmd.Flags().BoolVarP(&serverOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt with OpenPGP")
+	serverCmd.Flags().StringVarP(&serverOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
 }
 
 var serverCmd = &cobra.Command{
@@ -142,6 +146,14 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, serverToClientUrl, clientToServerUrl)
 	if err != nil {
 		return err
+	}
+	// If encryption is enabled
+	if serverOpenPGPSymmetricallyEncrypts {
+		// Encrypt
+		duplex, err = openPGPEncryptedDuplex(duplex, serverOpenPGPSymmetricallyEncryptPassphrase)
+		if err != nil {
+			return err
+		}
 	}
 	if showProgress {
 		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
