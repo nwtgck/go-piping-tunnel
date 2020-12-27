@@ -144,15 +144,15 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 }
 
 func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+	var duplex io.ReadWriteCloser
 	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, clientToServerUrl, serverToClientUrl)
 	if err != nil {
 		return err
 	}
-	var readWriteCloser io.ReadWriteCloser = duplex
 	if showProgress {
-		readWriteCloser = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
+		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
-	yamuxSession, err := yamux.Client(readWriteCloser, nil)
+	yamuxSession, err := yamux.Client(duplex, nil)
 	if err != nil {
 		return err
 	}
