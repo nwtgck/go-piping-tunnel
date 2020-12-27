@@ -1,6 +1,7 @@
 package piping_tunnel_util
 
 import (
+	"github.com/nwtgck/go-piping-tunnel/util"
 	"io"
 	"net/http"
 )
@@ -69,10 +70,7 @@ func (pd *PipingDuplex) Write(b []byte) (n int, err error) {
 }
 
 func (pd *PipingDuplex) Close() error {
-	err := pd.uploadWriter.Close()
-	if err != nil {
-		return err
-	}
-	err = pd.downloadReader.Close()
-	return err
+	wErr := pd.uploadWriter.Close()
+	rErr := pd.downloadReader.Close()
+	return util.CombineErrors(wErr, rErr)
 }

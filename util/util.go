@@ -77,3 +77,22 @@ func HumanizeBytes(s float64) string {
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
 }
+
+type CombinedError struct {
+	e1 error
+	e2 error
+}
+
+func (e CombinedError) Error() string {
+	return fmt.Sprintf("%v and %v", e.e1, e.e2)
+}
+
+func CombineErrors(e1 error, e2 error) error {
+	if e1 == nil {
+		return e2
+	}
+	if e2 == nil {
+		return e1
+	}
+	return &CombinedError{e1: e1, e2: e2}
+}

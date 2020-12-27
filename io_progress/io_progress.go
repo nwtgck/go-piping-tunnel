@@ -2,6 +2,7 @@ package io_progress
 
 import (
 	"fmt"
+	"github.com/nwtgck/go-piping-tunnel/util"
 	"io"
 	"strings"
 	"time"
@@ -44,15 +45,15 @@ func (progress *IOProgress) Write(p []byte) (int, error) {
 }
 
 func (progress *IOProgress) Close() error {
+	var rErr error
+	var wErr error
 	if r, ok := progress.reader.(io.ReadCloser); ok {
-		if err := r.Close(); err != nil {
-			return err
-		}
+		rErr = r.Close()
 	}
 	if w, ok := progress.writer.(io.WriteCloser); ok {
-		return w.Close()
+		wErr = w.Close()
 	}
-	return nil
+	return util.CombineErrors(wErr, rErr)
 }
 
 func (progress *IOProgress) displayIfShould() {
