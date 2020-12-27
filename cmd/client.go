@@ -166,15 +166,25 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 		if err != nil {
 			return err
 		}
+		fin := make(chan struct{})
 		go func() {
 			// TODO: hard code
 			var buf = make([]byte, 16)
 			io.CopyBuffer(yamuxStream, conn, buf)
+			fin <- struct{}{}
 		}()
 		go func() {
 			// TODO: hard code
 			var buf = make([]byte, 16)
 			io.CopyBuffer(conn, yamuxStream, buf)
+			fin <- struct{}{}
+		}()
+		go func() {
+			<-fin
+			<-fin
+			close(fin)
+			conn.Close()
+			yamuxStream.Close()
 		}()
 	}
 }
