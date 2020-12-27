@@ -5,6 +5,7 @@ import (
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
+	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
@@ -90,6 +91,11 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
 	var duplex io.ReadWriteCloser
 	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, serverToClientUrl, clientToServerUrl)
+	if err != nil {
+		return err
+	}
+	// TODO: Hard code: passphrase
+	duplex, err = openpgp_duplex.NewSymmetricallyDuplex(duplex, duplex, []byte("mypass"))
 	if err != nil {
 		return err
 	}

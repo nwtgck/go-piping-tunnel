@@ -53,7 +53,7 @@ func DuplexConnect(httpClient *http.Client, headers []KeyValue, uploadUrl, downl
 
 func (pd *PipingDuplex) Read(b []byte) (n int, err error) {
 	if pd.downloadReaderChan != nil {
-		// Get io.ReaderCloser or error
+		// Get io.ReadCloser or error
 		result := <-pd.downloadReaderChan
 		// If result is error
 		if err, ok := result.(error); ok {
