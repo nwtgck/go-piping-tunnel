@@ -46,6 +46,12 @@ jobs:
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
 
+    # Encrypt with AES-CTR
+    - run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
+    - run: ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
+    # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+    - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
+
     - name: Run server-host with yamux
       run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux aaa-yamux bbb-yamux & echo $! > pid1
     - name: Run client-host with yamux
