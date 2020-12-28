@@ -27,7 +27,7 @@ func init() {
 	serverCmd.MarkFlagRequired("port")
 	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "c-to-s-buf-size", "", 16, "Buffer size of client-to-server in bytes")
 	serverCmd.Flags().BoolVarP(&serverYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
-	serverCmd.Flags().BoolVarP(&serverOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt with OpenPGP")
+	serverCmd.Flags().BoolVarP(&serverOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
 	serverCmd.Flags().StringVarP(&serverOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
 }
 

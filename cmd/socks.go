@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
+	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -21,7 +22,7 @@ var socksOpenPGPSymmetricallyEncryptPassphrase string
 func init() {
 	RootCmd.AddCommand(socksCmd)
 	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
-	socksCmd.Flags().BoolVarP(&socksOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt with OpenPGP")
+	socksCmd.Flags().BoolVarP(&socksOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
 	socksCmd.Flags().StringVarP(&socksOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
 }
 
@@ -100,7 +101,8 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 	// If encryption is enabled
 	if socksOpenPGPSymmetricallyEncrypts {
 		// Encrypt
-		duplex, err = openPGPEncryptedDuplex(duplex, socksOpenPGPSymmetricallyEncryptPassphrase)
+		//duplex, err = openPGPEncryptedDuplex(duplex, socksOpenPGPSymmetricallyEncryptPassphrase)
+		duplex, err = crypto_duplex.NewDuplex(duplex, duplex)
 		if err != nil {
 			return err
 		}

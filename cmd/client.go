@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/hashicorp/yamux"
+	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -26,7 +27,7 @@ func init() {
 	clientCmd.Flags().IntVarP(&clientHostPort, "port", "p", 0, "TCP port of client host")
 	clientCmd.Flags().UintVarP(&clientServerToClientBufSize, "s-to-c-buf-size", "", 16, "Buffer size of server-to-client in bytes")
 	clientCmd.Flags().BoolVarP(&clientYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
-	clientCmd.Flags().BoolVarP(&clientOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt with OpenPGP")
+	clientCmd.Flags().BoolVarP(&clientOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
 	clientCmd.Flags().StringVarP(&clientOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
 }
 
@@ -156,7 +157,8 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 	// If encryption is enabled
 	if clientOpenPGPSymmetricallyEncrypts {
 		// Encrypt
-		duplex, err = openPGPEncryptedDuplex(duplex, clientOpenPGPSymmetricallyEncryptPassphrase)
+		//duplex, err = openPGPEncryptedDuplex(duplex, clientOpenPGPSymmetricallyEncryptPassphrase)
+		duplex, err = crypto_duplex.NewDuplex(duplex, duplex)
 		if err != nil {
 			return err
 		}
