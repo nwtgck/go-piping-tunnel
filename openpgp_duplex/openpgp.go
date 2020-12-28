@@ -5,13 +5,13 @@ import (
 	"io"
 )
 
-type SymmetricallyDuplex struct {
+type symmetricallyDuplex struct {
 	encryptWriter     io.WriteCloser
 	decryptedReader   io.Reader
 	decryptedReaderCh chan interface{} // io.Reader or error
 }
 
-func NewSymmetricallyDuplex(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*SymmetricallyDuplex, error) {
+func NewSymmetricallyDuplex(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*symmetricallyDuplex, error) {
 	encryptWriter, err := openpgp.SymmetricallyEncrypt(baseWriter, passphrase, nil, nil)
 	if err != nil {
 		return nil, err
@@ -29,17 +29,17 @@ func NewSymmetricallyDuplex(baseWriter io.WriteCloser, baseReader io.ReadCloser,
 		decryptedReaderCh <- md.UnverifiedBody
 	}()
 
-	return &SymmetricallyDuplex{
+	return &symmetricallyDuplex{
 		encryptWriter:     encryptWriter,
 		decryptedReaderCh: decryptedReaderCh,
 	}, nil
 }
 
-func (o *SymmetricallyDuplex) Write(p []byte) (int, error) {
+func (o *symmetricallyDuplex) Write(p []byte) (int, error) {
 	return o.encryptWriter.Write(p)
 }
 
-func (o *SymmetricallyDuplex) Read(p []byte) (int, error) {
+func (o *symmetricallyDuplex) Read(p []byte) (int, error) {
 	if o.decryptedReaderCh != nil {
 		// Get io.Reader or error
 		result := <-o.decryptedReaderCh
@@ -53,6 +53,6 @@ func (o *SymmetricallyDuplex) Read(p []byte) (int, error) {
 	return o.decryptedReader.Read(p)
 }
 
-func (o *SymmetricallyDuplex) Close() error {
+func (o *symmetricallyDuplex) Close() error {
 	return o.encryptWriter.Close()
 }

@@ -13,13 +13,13 @@ const saltLen = 64
 const pbkdf2Iter = 4096
 const keyLen = 32
 
-type AesCtrDuplex struct {
+type aesCtrDuplex struct {
 	encryptWriter   io.WriteCloser
 	decryptedReader io.Reader
 	closeBaseReader func() error
 }
 
-func EncryptDuplexWithAesCtr(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*AesCtrDuplex, error) {
+func EncryptDuplexWithAesCtr(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*aesCtrDuplex, error) {
 	// Generate salt
 	salt1, err := util.GenerateRandomBytes(saltLen)
 	if err != nil {
@@ -74,18 +74,18 @@ func EncryptDuplexWithAesCtr(baseWriter io.WriteCloser, baseReader io.ReadCloser
 		R: baseReader,
 	}
 
-	return &AesCtrDuplex{encryptWriter: encryptWriter, decryptedReader: decryptedReader, closeBaseReader: baseReader.Close}, nil
+	return &aesCtrDuplex{encryptWriter: encryptWriter, decryptedReader: decryptedReader, closeBaseReader: baseReader.Close}, nil
 }
 
-func (d *AesCtrDuplex) Write(p []byte) (int, error) {
+func (d *aesCtrDuplex) Write(p []byte) (int, error) {
 	return d.encryptWriter.Write(p)
 }
 
-func (d *AesCtrDuplex) Read(p []byte) (int, error) {
+func (d *aesCtrDuplex) Read(p []byte) (int, error) {
 	return d.decryptedReader.Read(p)
 }
 
-func (d *AesCtrDuplex) Close() error {
+func (d *aesCtrDuplex) Close() error {
 	wErr := d.encryptWriter.Close()
 	rErr := d.closeBaseReader()
 	return util.CombineErrors(wErr, rErr)

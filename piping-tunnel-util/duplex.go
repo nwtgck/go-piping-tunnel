@@ -6,13 +6,13 @@ import (
 	"net/http"
 )
 
-type PipingDuplex struct {
+type pipingDuplex struct {
 	downloadReaderChan <-chan interface{} // io.ReadCloser or error
 	uploadWriter       *io.PipeWriter
 	downloadReader     io.ReadCloser
 }
 
-func DuplexConnect(httpClient *http.Client, headers []KeyValue, uploadUrl, downloadUrl string) (*PipingDuplex, error) {
+func DuplexConnect(httpClient *http.Client, headers []KeyValue, uploadUrl, downloadUrl string) (*pipingDuplex, error) {
 	uploadPr, uploadPw := io.Pipe()
 	req, err := http.NewRequest("POST", uploadUrl, uploadPr)
 	if err != nil {
@@ -45,13 +45,13 @@ func DuplexConnect(httpClient *http.Client, headers []KeyValue, uploadUrl, downl
 		downloadReaderChan <- res.Body
 	}()
 
-	return &PipingDuplex{
+	return &pipingDuplex{
 		downloadReaderChan: downloadReaderChan,
 		uploadWriter:       uploadPw,
 	}, nil
 }
 
-func (pd *PipingDuplex) Read(b []byte) (n int, err error) {
+func (pd *pipingDuplex) Read(b []byte) (n int, err error) {
 	if pd.downloadReaderChan != nil {
 		// Get io.ReadCloser or error
 		result := <-pd.downloadReaderChan
@@ -65,11 +65,11 @@ func (pd *PipingDuplex) Read(b []byte) (n int, err error) {
 	return pd.downloadReader.Read(b)
 }
 
-func (pd *PipingDuplex) Write(b []byte) (n int, err error) {
+func (pd *pipingDuplex) Write(b []byte) (n int, err error) {
 	return pd.uploadWriter.Write(b)
 }
 
-func (pd *PipingDuplex) Close() error {
+func (pd *pipingDuplex) Close() error {
 	wErr := pd.uploadWriter.Close()
 	rErr := pd.downloadReader.Close()
 	return util.CombineErrors(wErr, rErr)
