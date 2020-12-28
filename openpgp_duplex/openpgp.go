@@ -1,6 +1,7 @@
 package openpgp_duplex
 
 import (
+	"github.com/nwtgck/go-piping-tunnel/util"
 	"golang.org/x/crypto/openpgp"
 	"io"
 )
@@ -9,6 +10,7 @@ type symmetricallyDuplex struct {
 	encryptWriter     io.WriteCloser
 	decryptedReader   io.Reader
 	decryptedReaderCh chan interface{} // io.Reader or error
+	closeBaseReader   func() error
 }
 
 func SymmetricallyEncryptDuplexWithOpenPGP(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*symmetricallyDuplex, error) {
@@ -32,6 +34,7 @@ func SymmetricallyEncryptDuplexWithOpenPGP(baseWriter io.WriteCloser, baseReader
 	return &symmetricallyDuplex{
 		encryptWriter:     encryptWriter,
 		decryptedReaderCh: decryptedReaderCh,
+		closeBaseReader:   baseReader.Close,
 	}, nil
 }
 
@@ -54,5 +57,7 @@ func (o *symmetricallyDuplex) Read(p []byte) (int, error) {
 }
 
 func (o *symmetricallyDuplex) Close() error {
-	return o.encryptWriter.Close()
+	wErr := o.encryptWriter.Close()
+	rErr := o.closeBaseReader()
+	return util.CombineErrors(wErr, rErr)
 }
