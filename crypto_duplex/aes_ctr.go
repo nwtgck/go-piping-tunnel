@@ -16,6 +16,7 @@ const keyLen = 32
 type AesCtrDuplex struct {
 	encryptWriter   io.WriteCloser
 	decryptedReader io.Reader
+	closeBaseReader func() error
 }
 
 func EncryptDuplexWithAesCtr(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*AesCtrDuplex, error) {
@@ -73,7 +74,7 @@ func EncryptDuplexWithAesCtr(baseWriter io.WriteCloser, baseReader io.ReadCloser
 		R: baseReader,
 	}
 
-	return &AesCtrDuplex{encryptWriter: encryptWriter, decryptedReader: decryptedReader}, nil
+	return &AesCtrDuplex{encryptWriter: encryptWriter, decryptedReader: decryptedReader, closeBaseReader: baseReader.Close}, nil
 }
 
 func (d *AesCtrDuplex) Write(p []byte) (int, error) {
@@ -85,5 +86,7 @@ func (d *AesCtrDuplex) Read(p []byte) (int, error) {
 }
 
 func (d *AesCtrDuplex) Close() error {
-	return d.encryptWriter.Close()
+	wErr := d.encryptWriter.Close()
+	rErr := d.closeBaseReader()
+	return util.CombineErrors(wErr, rErr)
 }
