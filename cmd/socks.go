@@ -14,18 +14,26 @@ import (
 var socksYamux bool
 var socksOpenPGPSymmetricallyEncrypts bool
 var socksOpenPGPSymmetricallyEncryptPassphrase string
+var socksCipherType string
 
 func init() {
 	RootCmd.AddCommand(socksCmd)
 	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
 	socksCmd.Flags().BoolVarP(&socksOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
 	socksCmd.Flags().StringVarP(&socksOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
+	socksCmd.Flags().StringVarP(&socksCipherType, "cipher-type", "", cipherTypeAesCtr, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
 }
 
 var socksCmd = &cobra.Command{
 	Use:   "socks",
 	Short: "Run SOCKS5 server",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Validate cipher-type
+		if socksOpenPGPSymmetricallyEncrypts {
+			if err := validateClientCipher(socksCipherType); err != nil {
+				return nil
+			}
+		}
 		clientToServerPath, serverToClientPath, err := generatePaths(args)
 		if err != nil {
 			return err
@@ -95,7 +103,7 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 }
 
 func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, socksOpenPGPSymmetricallyEncrypts, socksOpenPGPSymmetricallyEncryptPassphrase)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, socksOpenPGPSymmetricallyEncrypts, socksOpenPGPSymmetricallyEncryptPassphrase, socksCipherType)
 	if err != nil {
 		return err
 	}

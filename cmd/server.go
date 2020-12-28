@@ -20,6 +20,7 @@ var serverClientToServerBufSize uint
 var serverYamux bool
 var serverOpenPGPSymmetricallyEncrypts bool
 var serverOpenPGPSymmetricallyEncryptPassphrase string
+var serverCipherType string
 
 func init() {
 	RootCmd.AddCommand(serverCmd)
@@ -29,12 +30,19 @@ func init() {
 	serverCmd.Flags().BoolVarP(&serverYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
 	serverCmd.Flags().BoolVarP(&serverOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
 	serverCmd.Flags().StringVarP(&serverOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
+	serverCmd.Flags().StringVarP(&serverCipherType, "cipher-type", "", cipherTypeAesCtr, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
 }
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run server-host",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Validate cipher-type
+		if serverOpenPGPSymmetricallyEncrypts {
+			if err := validateClientCipher(serverCipherType); err != nil {
+				return nil
+			}
+		}
 		clientToServerPath, serverToClientPath, err := generatePaths(args)
 		if err != nil {
 			return err
@@ -78,7 +86,7 @@ var serverCmd = &cobra.Command{
 		defer conn.Close()
 		// If encryption is enabled
 		if serverOpenPGPSymmetricallyEncrypts {
-			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverOpenPGPSymmetricallyEncrypts, serverOpenPGPSymmetricallyEncryptPassphrase)
+			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverOpenPGPSymmetricallyEncrypts, serverOpenPGPSymmetricallyEncryptPassphrase, serverCipherType)
 			if err != nil {
 				return err
 			}
@@ -171,7 +179,7 @@ func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, 
 }
 
 func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverOpenPGPSymmetricallyEncrypts, serverOpenPGPSymmetricallyEncryptPassphrase)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverOpenPGPSymmetricallyEncrypts, serverOpenPGPSymmetricallyEncryptPassphrase, serverCipherType)
 	if err != nil {
 		return err
 	}

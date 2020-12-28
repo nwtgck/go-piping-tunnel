@@ -11,7 +11,7 @@ type symmetricallyDuplex struct {
 	decryptedReaderCh chan interface{} // io.Reader or error
 }
 
-func NewSymmetricallyDuplex(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*symmetricallyDuplex, error) {
+func SymmetricallyEncryptDuplexWithOpenPGP(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*symmetricallyDuplex, error) {
 	encryptWriter, err := openpgp.SymmetricallyEncrypt(baseWriter, passphrase, nil, nil)
 	if err != nil {
 		return nil, err
