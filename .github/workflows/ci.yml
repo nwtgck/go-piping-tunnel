@@ -47,17 +47,19 @@ jobs:
     - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
 
     - name: Run server-host with yamux
-      run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux aaa-yamux bbb-yamux &
+      run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux aaa-yamux bbb-yamux & echo $! > pid1
     - name: Run client-host with yamux
-      run: ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux aaa-yamux bbb-yamux &
+      run: ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux aaa-yamux bbb-yamux & echo $! > pid2
     # Check whether ssh multiple times
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost hostname
     - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
+    - run: kill $(cat pid1) && kill $(cat pid2)
 
     - name: Run socks with yamux
-      run: ./piping-tunnel -s http://localhost:8080 socks --yamux aaa-socks bbb-socks &
+      run: ./piping-tunnel -s http://localhost:8080 socks --yamux aaa-socks bbb-socks & echo $! > pid1
     - name: Run client-host with yamux
-      run: ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux aaa-socks bbb-socks &
+      run: ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux aaa-socks bbb-socks & echo $! > pid2
     # NOTE: Depends on external resource: example.com
     - run: curl -x socks5h://localhost:1081 https://example.com
+    - run: kill $(cat pid1) && kill $(cat pid2)
