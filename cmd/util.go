@@ -5,8 +5,11 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
+	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"io"
+	"net/http"
+	"os"
 	"time"
 )
 
@@ -74,5 +77,25 @@ func aesCtrEncryptedDuplex(duplex io.ReadWriteCloser, passphrase string) (io.Rea
 		return nil, err
 	}
 	fmt.Println("[INFO] End-to-end encryption with AES-CTR")
+	return duplex, nil
+}
+
+func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, uploadUrl, downloadUrl string, encrypts bool, passphrase string) (io.ReadWriteCloser, error) {
+	var duplex io.ReadWriteCloser
+	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, uploadUrl, downloadUrl)
+	if err != nil {
+		return nil, err
+	}
+	// If encryption is enabled
+	if encrypts {
+		// Encrypt
+		duplex, err = aesCtrEncryptedDuplex(duplex, passphrase)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if showProgress {
+		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
+	}
 	return duplex, nil
 }

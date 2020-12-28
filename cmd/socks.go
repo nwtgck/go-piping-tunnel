@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
-	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
-	"io"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -92,25 +89,9 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 }
 
 func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	var duplex io.ReadWriteCloser
-	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, serverToClientUrl, clientToServerUrl)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, socksOpenPGPSymmetricallyEncrypts, socksOpenPGPSymmetricallyEncryptPassphrase)
 	if err != nil {
 		return err
-	}
-	// If encryption is enabled
-	if socksOpenPGPSymmetricallyEncrypts {
-		// Encrypt
-		//duplex, err = openPGPEncryptedDuplex(duplex, socksOpenPGPSymmetricallyEncryptPassphrase)
-		duplex, err = aesCtrEncryptedDuplex(duplex, socksOpenPGPSymmetricallyEncryptPassphrase)
-		if err != nil {
-			return err
-		}
-	}
-	if err != nil {
-		return err
-	}
-	if showProgress {
-		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
 	yamuxSession, err := yamux.Server(duplex, nil)
 	if err != nil {

@@ -74,6 +74,29 @@ var clientCmd = &cobra.Command{
 		fmt.Println("[INFO] accepted")
 		// Refuse another new connection
 		ln.Close()
+		// If encryption is enabled
+		if clientOpenPGPSymmetricallyEncrypts {
+			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientOpenPGPSymmetricallyEncrypts, clientOpenPGPSymmetricallyEncryptPassphrase)
+			if err != nil {
+				return err
+			}
+			fin := make(chan struct{})
+			go func() {
+				// TODO: hard code
+				var buf = make([]byte, 16)
+				io.CopyBuffer(duplex, conn, buf)
+				fin <- struct{}{}
+			}()
+			go func() {
+				// TODO: hard code
+				var buf = make([]byte, 16)
+				io.CopyBuffer(conn, duplex, buf)
+				fin <- struct{}{}
+			}()
+			<-fin
+			<-fin
+			return nil
+		}
 		var progress *io_progress.IOProgress = nil
 		if showProgress {
 			progress = io_progress.NewIOProgress(conn, ioutil.Discard, os.Stderr, makeProgressMessage)
@@ -148,25 +171,9 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 }
 
 func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	var duplex io.ReadWriteCloser
-	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, clientToServerUrl, serverToClientUrl)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientOpenPGPSymmetricallyEncrypts, clientOpenPGPSymmetricallyEncryptPassphrase)
 	if err != nil {
 		return err
-	}
-	// If encryption is enabled
-	if clientOpenPGPSymmetricallyEncrypts {
-		// Encrypt
-		//duplex, err = openPGPEncryptedDuplex(duplex, clientOpenPGPSymmetricallyEncryptPassphrase)
-		duplex, err = aesCtrEncryptedDuplex(duplex, clientOpenPGPSymmetricallyEncryptPassphrase)
-		if err != nil {
-			return err
-		}
-	}
-	if err != nil {
-		return err
-	}
-	if showProgress {
-		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
 	yamuxSession, err := yamux.Client(duplex, nil)
 	if err != nil {

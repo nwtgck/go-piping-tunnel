@@ -70,6 +70,29 @@ var serverCmd = &cobra.Command{
 			return err
 		}
 		defer conn.Close()
+		// If encryption is enabled
+		if serverOpenPGPSymmetricallyEncrypts {
+			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverOpenPGPSymmetricallyEncrypts, serverOpenPGPSymmetricallyEncryptPassphrase)
+			if err != nil {
+				return err
+			}
+			fin := make(chan struct{})
+			go func() {
+				// TODO: hard code
+				var buf = make([]byte, 16)
+				io.CopyBuffer(duplex, conn, buf)
+				fin <- struct{}{}
+			}()
+			go func() {
+				// TODO: hard code
+				var buf = make([]byte, 16)
+				io.CopyBuffer(conn, duplex, buf)
+				fin <- struct{}{}
+			}()
+			<-fin
+			<-fin
+			return nil
+		}
 		var progress *io_progress.IOProgress = nil
 		if showProgress {
 			progress = io_progress.NewIOProgress(conn, ioutil.Discard, os.Stderr, makeProgressMessage)
@@ -142,21 +165,9 @@ func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, 
 }
 
 func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	var duplex io.ReadWriteCloser
-	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, serverToClientUrl, clientToServerUrl)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverOpenPGPSymmetricallyEncrypts, serverOpenPGPSymmetricallyEncryptPassphrase)
 	if err != nil {
 		return err
-	}
-	// If encryption is enabled
-	if serverOpenPGPSymmetricallyEncrypts {
-		// Encrypt
-		duplex, err = openPGPEncryptedDuplex(duplex, serverOpenPGPSymmetricallyEncryptPassphrase)
-		if err != nil {
-			return err
-		}
-	}
-	if showProgress {
-		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
 	yamuxSession, err := yamux.Server(duplex, nil)
 	if err != nil {
