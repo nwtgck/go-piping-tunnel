@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"github.com/hashicorp/yamux"
-	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -158,7 +157,7 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 	if clientOpenPGPSymmetricallyEncrypts {
 		// Encrypt
 		//duplex, err = openPGPEncryptedDuplex(duplex, clientOpenPGPSymmetricallyEncryptPassphrase)
-		duplex, err = crypto_duplex.NewDuplex(duplex, duplex)
+		duplex, err = aesCtrEncryptedDuplex(duplex, clientOpenPGPSymmetricallyEncryptPassphrase)
 		if err != nil {
 			return err
 		}

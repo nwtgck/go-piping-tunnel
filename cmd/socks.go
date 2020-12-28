@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
-	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -102,7 +101,7 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 	if socksOpenPGPSymmetricallyEncrypts {
 		// Encrypt
 		//duplex, err = openPGPEncryptedDuplex(duplex, socksOpenPGPSymmetricallyEncryptPassphrase)
-		duplex, err = crypto_duplex.NewDuplex(duplex, duplex)
+		duplex, err = aesCtrEncryptedDuplex(duplex, socksOpenPGPSymmetricallyEncryptPassphrase)
 		if err != nil {
 			return err
 		}

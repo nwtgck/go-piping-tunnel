@@ -2,9 +2,11 @@ package util
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"fmt"
 	"github.com/mattn/go-tty"
+	"io"
 	"math"
 	"net"
 	"net/http"
@@ -110,4 +112,12 @@ func InputPassphrase() (string, error) {
 		return "", err
 	}
 	return passphrase, nil
+}
+
+func GenerateRandomBytes(len int) ([]byte, error) {
+	bytes := make([]byte, len)
+	if _, err := io.ReadFull(rand.Reader, bytes); err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }
