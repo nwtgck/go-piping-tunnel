@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
-	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"io"
@@ -42,42 +41,14 @@ func makeProgressMessage(progress *io_progress.IOProgress) string {
 	)
 }
 
-func openPGPEncryptedDuplex(duplex io.ReadWriteCloser, passphrase string) (io.ReadWriteCloser, error) {
+func makeUserInputPassphraseIfEmpty(passphrase *string) (err error) {
 	// If the passphrase is empty
-	if passphrase == "" {
-		var err error
+	if *passphrase == "" {
 		// Get user-input passphrase
-		passphrase, err = util.InputPassphrase()
-		if err != nil {
-			return nil, err
-		}
+		*passphrase, err = util.InputPassphrase()
+		return err
 	}
-	// Encrypt
-	duplex, err := openpgp_duplex.NewSymmetricallyDuplex(duplex, duplex, []byte(passphrase))
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("[INFO] End-to-end encryption with OpenPGP")
-	return duplex, nil
-}
-
-func aesCtrEncryptedDuplex(duplex io.ReadWriteCloser, passphrase string) (io.ReadWriteCloser, error) {
-	// If the passphrase is empty
-	if passphrase == "" {
-		var err error
-		// Get user-input passphrase
-		passphrase, err = util.InputPassphrase()
-		if err != nil {
-			return nil, err
-		}
-	}
-	// Encrypt
-	duplex, err := crypto_duplex.EncryptDuplexWithAesCtr(duplex, duplex, []byte(passphrase))
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("[INFO] End-to-end encryption with AES-CTR")
-	return duplex, nil
+	return nil
 }
 
 func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, uploadUrl, downloadUrl string, encrypts bool, passphrase string) (io.ReadWriteCloser, error) {
@@ -89,10 +60,11 @@ func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers 
 	// If encryption is enabled
 	if encrypts {
 		// Encrypt
-		duplex, err = aesCtrEncryptedDuplex(duplex, passphrase)
+		duplex, err = crypto_duplex.EncryptDuplexWithAesCtr(duplex, duplex, []byte(passphrase))
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("[INFO] End-to-end encryption with AES-CTR")
 	}
 	if showProgress {
 		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)

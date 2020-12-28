@@ -58,7 +58,13 @@ var serverCmd = &cobra.Command{
 		}
 		// Print hint
 		printHintForClientHost(clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
-
+		// Make user input passphrase if it is empty
+		if serverOpenPGPSymmetricallyEncrypts {
+			err = makeUserInputPassphraseIfEmpty(&serverOpenPGPSymmetricallyEncryptPassphrase)
+			if err != nil {
+				return err
+			}
+		}
 		// Use multiplexer with yamux
 		if serverYamux {
 			fmt.Println("[INFO] Multiplexing with hashicorp/yamux")

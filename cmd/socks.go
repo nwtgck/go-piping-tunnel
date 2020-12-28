@@ -49,7 +49,13 @@ var socksCmd = &cobra.Command{
 		}
 		// Print hint
 		socksPrintHintForClientHost(clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
-
+		// Make user input passphrase if it is empty
+		if socksOpenPGPSymmetricallyEncrypts {
+			err = makeUserInputPassphraseIfEmpty(&socksOpenPGPSymmetricallyEncryptPassphrase)
+			if err != nil {
+				return err
+			}
+		}
 		// If not use multiplexer with yamux
 		if !socksYamux {
 			return fmt.Errorf("--yamux must be specified")
