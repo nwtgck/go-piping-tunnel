@@ -94,22 +94,20 @@ var clientCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			fin := make(chan struct{})
+			fin := make(chan error)
 			go func() {
 				// TODO: hard code
 				var buf = make([]byte, 16)
-				io.CopyBuffer(duplex, conn, buf)
-				fin <- struct{}{}
+				_, err := io.CopyBuffer(duplex, conn, buf)
+				fin <- err
 			}()
 			go func() {
 				// TODO: hard code
 				var buf = make([]byte, 16)
-				io.CopyBuffer(conn, duplex, buf)
-				fin <- struct{}{}
+				_, err := io.CopyBuffer(conn, duplex, buf)
+				fin <- err
 			}()
-			<-fin
-			<-fin
-			return nil
+			return util.CombineErrors(<-fin, <-fin)
 		}
 		var progress *io_progress.IOProgress = nil
 		if showProgress {
