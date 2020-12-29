@@ -12,15 +12,15 @@ import (
 )
 
 var socksYamux bool
-var socksOpenPGPSymmetricallyEncrypts bool
-var socksOpenPGPSymmetricallyEncryptPassphrase string
+var socksSymmetricallyEncrypts bool
+var socksSymmetricallyEncryptPassphrase string
 var socksCipherType string
 
 func init() {
 	RootCmd.AddCommand(socksCmd)
 	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
-	socksCmd.Flags().BoolVarP(&socksOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
-	socksCmd.Flags().StringVarP(&socksOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
+	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
+	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
 	socksCmd.Flags().StringVarP(&socksCipherType, "cipher-type", "", cipherTypeAesCtr, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
 }
 
@@ -29,7 +29,7 @@ var socksCmd = &cobra.Command{
 	Short: "Run SOCKS5 server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Validate cipher-type
-		if socksOpenPGPSymmetricallyEncrypts {
+		if socksSymmetricallyEncrypts {
 			if err := validateClientCipher(socksCipherType); err != nil {
 				return nil
 			}
@@ -58,8 +58,8 @@ var socksCmd = &cobra.Command{
 		// Print hint
 		socksPrintHintForClientHost(clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
 		// Make user input passphrase if it is empty
-		if socksOpenPGPSymmetricallyEncrypts {
-			err = makeUserInputPassphraseIfEmpty(&socksOpenPGPSymmetricallyEncryptPassphrase)
+		if socksSymmetricallyEncrypts {
+			err = makeUserInputPassphraseIfEmpty(&socksSymmetricallyEncryptPassphrase)
 			if err != nil {
 				return err
 			}
@@ -103,7 +103,7 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 }
 
 func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, socksOpenPGPSymmetricallyEncrypts, socksOpenPGPSymmetricallyEncryptPassphrase, socksCipherType)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
 	if err != nil {
 		return err
 	}

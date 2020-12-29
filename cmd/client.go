@@ -18,8 +18,8 @@ import (
 var clientHostPort int
 var clientServerToClientBufSize uint
 var clientYamux bool
-var clientOpenPGPSymmetricallyEncrypts bool
-var clientOpenPGPSymmetricallyEncryptPassphrase string
+var clientSymmetricallyEncrypts bool
+var clientSymmetricallyEncryptPassphrase string
 var clientCipherType string
 
 func init() {
@@ -27,8 +27,8 @@ func init() {
 	clientCmd.Flags().IntVarP(&clientHostPort, "port", "p", 0, "TCP port of client host")
 	clientCmd.Flags().UintVarP(&clientServerToClientBufSize, "s-to-c-buf-size", "", 16, "Buffer size of server-to-client in bytes")
 	clientCmd.Flags().BoolVarP(&clientYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
-	clientCmd.Flags().BoolVarP(&clientOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
-	clientCmd.Flags().StringVarP(&clientOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
+	clientCmd.Flags().BoolVarP(&clientSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
+	clientCmd.Flags().StringVarP(&clientSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
 	clientCmd.Flags().StringVarP(&clientCipherType, "cipher-type", "", cipherTypeAesCtr, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
 }
 
@@ -37,7 +37,7 @@ var clientCmd = &cobra.Command{
 	Short: "Run client-host",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Validate cipher-type
-		if clientOpenPGPSymmetricallyEncrypts {
+		if clientSymmetricallyEncrypts {
 			if err := validateClientCipher(clientCipherType); err != nil {
 				return nil
 			}
@@ -70,8 +70,8 @@ var clientCmd = &cobra.Command{
 		// Print hint
 		printHintForServerHost(ln, clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
 		// Make user input passphrase if it is empty
-		if clientOpenPGPSymmetricallyEncrypts {
-			err = makeUserInputPassphraseIfEmpty(&clientOpenPGPSymmetricallyEncryptPassphrase)
+		if clientSymmetricallyEncrypts {
+			err = makeUserInputPassphraseIfEmpty(&clientSymmetricallyEncryptPassphrase)
 			if err != nil {
 				return err
 			}
@@ -89,8 +89,8 @@ var clientCmd = &cobra.Command{
 		// Refuse another new connection
 		ln.Close()
 		// If encryption is enabled
-		if clientOpenPGPSymmetricallyEncrypts {
-			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientOpenPGPSymmetricallyEncrypts, clientOpenPGPSymmetricallyEncryptPassphrase, clientCipherType)
+		if clientSymmetricallyEncrypts {
+			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
 			if err != nil {
 				return err
 			}
@@ -185,7 +185,7 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 }
 
 func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientOpenPGPSymmetricallyEncrypts, clientOpenPGPSymmetricallyEncryptPassphrase, clientCipherType)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
 	if err != nil {
 		return err
 	}
