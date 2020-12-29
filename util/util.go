@@ -11,7 +11,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"path"
+	"syscall"
 	"time"
 )
 
@@ -106,6 +109,28 @@ func InputPassphrase() (string, error) {
 		return "", err
 	}
 	defer tty.Close()
+	quitCh := make(chan os.Signal)
+	doneCh := make(chan struct{})
+	defer func() {
+		// End this input-function normally
+		doneCh <- struct{}{}
+	}()
+	go func() {
+		signal.Notify(quitCh, syscall.SIGINT)
+		for {
+			select {
+			// Signal from OS
+			case <-quitCh:
+				tty.Close()
+				fmt.Println()
+				os.Exit(0)
+			// End this input-function normally
+			case <-doneCh:
+				signal.Stop(quitCh)
+				return
+			}
+		}
+	}()
 	fmt.Fprint(tty.Output(), "Passphrase: ")
 	passphrase, err := tty.ReadPasswordNoEcho()
 	if err != nil {
