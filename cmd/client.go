@@ -172,11 +172,25 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 	}
 	fmt.Println("[INFO] Hint: Server host (piping-tunnel)")
 	flags := ""
+	if clientSymmetricallyEncrypts {
+		flags += fmt.Sprintf("-%s ", symmetricallyEncryptsFlagShortName)
+		if clientCipherType != defaultCipherType {
+			flags += fmt.Sprintf("--%s=%s ", cipherTypeFlagLongName, clientCipherType)
+		}
+	}
 	if clientYamux {
 		flags += fmt.Sprintf("--%s ", yamuxFlagLongName)
 	}
 	fmt.Printf(
 		"  piping-tunnel -s %s server -p <YOUR PORT> %s%s %s\n",
+		serverUrl,
+		flags,
+		clientToServerPath,
+		serverToClientPath,
+	)
+	fmt.Println("    OR")
+	fmt.Printf(
+		"  piping-tunnel -s %s socks %s%s %s\n",
 		serverUrl,
 		flags,
 		clientToServerPath,

@@ -89,6 +89,12 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 		)
 	}
 	flags := ""
+	if socksSymmetricallyEncrypts {
+		flags += fmt.Sprintf("-%s ", symmetricallyEncryptsFlagShortName)
+		if socksCipherType != defaultCipherType {
+			flags += fmt.Sprintf("--%s=%s ", cipherTypeFlagLongName, socksCipherType)
+		}
+	}
 	if socksYamux {
 		flags += fmt.Sprintf("--%s ", yamuxFlagLongName)
 	}

@@ -165,6 +165,12 @@ func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, 
 		)
 	}
 	flags := ""
+	if serverSymmetricallyEncrypts {
+		flags += fmt.Sprintf("-%s ", symmetricallyEncryptsFlagShortName)
+		if serverCipherType != defaultCipherType {
+			flags += fmt.Sprintf("--%s=%s ", cipherTypeFlagLongName, serverCipherType)
+		}
+	}
 	if serverYamux {
 		flags += fmt.Sprintf("--%s ", yamuxFlagLongName)
 	}
