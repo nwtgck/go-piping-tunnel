@@ -4,27 +4,36 @@ import (
 	"fmt"
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
-	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
-	"io"
 	"net/http"
-	"os"
 	"strings"
 )
 
 var socksYamux bool
+var socksOpenPGPSymmetricallyEncrypts bool
+var socksOpenPGPSymmetricallyEncryptPassphrase string
+var socksCipherType string
 
 func init() {
 	RootCmd.AddCommand(socksCmd)
 	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
+	socksCmd.Flags().BoolVarP(&socksOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
+	socksCmd.Flags().StringVarP(&socksOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
+	socksCmd.Flags().StringVarP(&socksCipherType, "cipher-type", "", cipherTypeAesCtr, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
 }
 
 var socksCmd = &cobra.Command{
 	Use:   "socks",
 	Short: "Run SOCKS5 server",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Validate cipher-type
+		if socksOpenPGPSymmetricallyEncrypts {
+			if err := validateClientCipher(socksCipherType); err != nil {
+				return nil
+			}
+		}
 		clientToServerPath, serverToClientPath, err := generatePaths(args)
 		if err != nil {
 			return err
@@ -48,7 +57,13 @@ var socksCmd = &cobra.Command{
 		}
 		// Print hint
 		socksPrintHintForClientHost(clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
-
+		// Make user input passphrase if it is empty
+		if socksOpenPGPSymmetricallyEncrypts {
+			err = makeUserInputPassphraseIfEmpty(&socksOpenPGPSymmetricallyEncryptPassphrase)
+			if err != nil {
+				return err
+			}
+		}
 		// If not use multiplexer with yamux
 		if !socksYamux {
 			return fmt.Errorf("--yamux must be specified")
@@ -88,13 +103,9 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 }
 
 func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	var duplex io.ReadWriteCloser
-	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, serverToClientUrl, clientToServerUrl)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, socksOpenPGPSymmetricallyEncrypts, socksOpenPGPSymmetricallyEncryptPassphrase, socksCipherType)
 	if err != nil {
 		return err
-	}
-	if showProgress {
-		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
 	yamuxSession, err := yamux.Server(duplex, nil)
 	if err != nil {

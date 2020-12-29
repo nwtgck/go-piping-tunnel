@@ -18,18 +18,30 @@ import (
 var clientHostPort int
 var clientServerToClientBufSize uint
 var clientYamux bool
+var clientOpenPGPSymmetricallyEncrypts bool
+var clientOpenPGPSymmetricallyEncryptPassphrase string
+var clientCipherType string
 
 func init() {
 	RootCmd.AddCommand(clientCmd)
 	clientCmd.Flags().IntVarP(&clientHostPort, "port", "p", 0, "TCP port of client host")
 	clientCmd.Flags().UintVarP(&clientServerToClientBufSize, "s-to-c-buf-size", "", 16, "Buffer size of server-to-client in bytes")
 	clientCmd.Flags().BoolVarP(&clientYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
+	clientCmd.Flags().BoolVarP(&clientOpenPGPSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
+	clientCmd.Flags().StringVarP(&clientOpenPGPSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
+	clientCmd.Flags().StringVarP(&clientCipherType, "cipher-type", "", cipherTypeAesCtr, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
 }
 
 var clientCmd = &cobra.Command{
 	Use:   "client",
 	Short: "Run client-host",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Validate cipher-type
+		if clientOpenPGPSymmetricallyEncrypts {
+			if err := validateClientCipher(clientCipherType); err != nil {
+				return nil
+			}
+		}
 		clientToServerPath, serverToClientPath, err := generatePaths(args)
 		if err != nil {
 			return err
@@ -57,7 +69,13 @@ var clientCmd = &cobra.Command{
 		}
 		// Print hint
 		printHintForServerHost(ln, clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
-
+		// Make user input passphrase if it is empty
+		if clientOpenPGPSymmetricallyEncrypts {
+			err = makeUserInputPassphraseIfEmpty(&clientOpenPGPSymmetricallyEncryptPassphrase)
+			if err != nil {
+				return err
+			}
+		}
 		// Use multiplexer with yamux
 		if clientYamux {
 			fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
@@ -70,6 +88,29 @@ var clientCmd = &cobra.Command{
 		fmt.Println("[INFO] accepted")
 		// Refuse another new connection
 		ln.Close()
+		// If encryption is enabled
+		if clientOpenPGPSymmetricallyEncrypts {
+			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientOpenPGPSymmetricallyEncrypts, clientOpenPGPSymmetricallyEncryptPassphrase, clientCipherType)
+			if err != nil {
+				return err
+			}
+			fin := make(chan struct{})
+			go func() {
+				// TODO: hard code
+				var buf = make([]byte, 16)
+				io.CopyBuffer(duplex, conn, buf)
+				fin <- struct{}{}
+			}()
+			go func() {
+				// TODO: hard code
+				var buf = make([]byte, 16)
+				io.CopyBuffer(conn, duplex, buf)
+				fin <- struct{}{}
+			}()
+			<-fin
+			<-fin
+			return nil
+		}
 		var progress *io_progress.IOProgress = nil
 		if showProgress {
 			progress = io_progress.NewIOProgress(conn, ioutil.Discard, os.Stderr, makeProgressMessage)
@@ -144,13 +185,9 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 }
 
 func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	var duplex io.ReadWriteCloser
-	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, clientToServerUrl, serverToClientUrl)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientOpenPGPSymmetricallyEncrypts, clientOpenPGPSymmetricallyEncryptPassphrase, clientCipherType)
 	if err != nil {
 		return err
-	}
-	if showProgress {
-		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
 	yamuxSession, err := yamux.Client(duplex, nil)
 	if err != nil {

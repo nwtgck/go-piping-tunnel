@@ -2,8 +2,11 @@ package util
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"fmt"
+	"github.com/mattn/go-tty"
+	"io"
 	"math"
 	"net"
 	"net/http"
@@ -78,12 +81,12 @@ func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
 }
 
-type CombinedError struct {
+type combinedError struct {
 	e1 error
 	e2 error
 }
 
-func (e CombinedError) Error() string {
+func (e combinedError) Error() string {
 	return fmt.Sprintf("%v and %v", e.e1, e.e2)
 }
 
@@ -94,5 +97,27 @@ func CombineErrors(e1 error, e2 error) error {
 	if e2 == nil {
 		return e1
 	}
-	return &CombinedError{e1: e1, e2: e2}
+	return &combinedError{e1: e1, e2: e2}
+}
+
+func InputPassphrase() (string, error) {
+	tty, err := tty.Open()
+	if err != nil {
+		return "", err
+	}
+	defer tty.Close()
+	fmt.Fprint(tty.Output(), "Passphrase: ")
+	passphrase, err := tty.ReadPasswordNoEcho()
+	if err != nil {
+		return "", err
+	}
+	return passphrase, nil
+}
+
+func GenerateRandomBytes(len int) ([]byte, error) {
+	bytes := make([]byte, len)
+	if _, err := io.ReadFull(rand.Reader, bytes); err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }
