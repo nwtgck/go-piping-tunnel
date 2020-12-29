@@ -20,7 +20,7 @@ type IOProgress struct {
 	lastDisplayTime time.Time
 }
 
-func NewIOProgress(reader io.Reader, writer io.Writer, messageWriter io.Writer, makeMessage func(progress *IOProgress) string) *IOProgress {
+func NewIOProgress(writer io.Writer, reader io.Reader, messageWriter io.Writer, makeMessage func(progress *IOProgress) string) *IOProgress {
 	return &IOProgress{reader: reader, writer: writer, messageWriter: messageWriter, StartTime: time.Now(), makeMessage: makeMessage}
 }
 

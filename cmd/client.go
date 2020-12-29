@@ -8,7 +8,6 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -111,7 +110,7 @@ var clientCmd = &cobra.Command{
 		}
 		var progress *io_progress.IOProgress = nil
 		if showProgress {
-			progress = io_progress.NewIOProgress(conn, ioutil.Discard, os.Stderr, makeProgressMessage)
+			progress = io_progress.NewIOProgress(conn, conn, os.Stderr, makeProgressMessage)
 		}
 		var reader io.Reader = conn
 		if progress != nil {
@@ -142,7 +141,7 @@ var clientCmd = &cobra.Command{
 		}
 		var writer io.Writer = conn
 		if progress != nil {
-			writer = io.MultiWriter(conn, progress)
+			writer = progress
 		}
 		var buf = make([]byte, clientServerToClientBufSize)
 		_, err = io.CopyBuffer(writer, res.Body, buf)
