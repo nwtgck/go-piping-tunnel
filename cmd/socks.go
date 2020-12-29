@@ -66,7 +66,7 @@ var socksCmd = &cobra.Command{
 		}
 		// If not use multiplexer with yamux
 		if !socksYamux {
-			return fmt.Errorf("--yamux must be specified")
+			return fmt.Errorf("--%s must be specified", yamuxFlagLongName)
 		}
 
 		fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
