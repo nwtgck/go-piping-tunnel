@@ -26,10 +26,10 @@ func init() {
 	RootCmd.AddCommand(clientCmd)
 	clientCmd.Flags().IntVarP(&clientHostPort, "port", "p", 0, "TCP port of client host")
 	clientCmd.Flags().UintVarP(&clientServerToClientBufSize, "s-to-c-buf-size", "", 16, "Buffer size of server-to-client in bytes")
-	clientCmd.Flags().BoolVarP(&clientYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
-	clientCmd.Flags().BoolVarP(&clientSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
-	clientCmd.Flags().StringVarP(&clientSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
-	clientCmd.Flags().StringVarP(&clientCipherType, "cipher-type", "", cipherTypeAesCtr, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
+	clientCmd.Flags().BoolVarP(&clientYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
+	clientCmd.Flags().BoolVarP(&clientSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
+	clientCmd.Flags().StringVarP(&clientSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
+	clientCmd.Flags().StringVarP(&clientCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
 }
 
 var clientCmd = &cobra.Command{
@@ -173,7 +173,7 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 	fmt.Println("[INFO] Hint: Server host (piping-tunnel)")
 	flags := ""
 	if clientYamux {
-		flags += "--yamux "
+		flags += fmt.Sprintf("--%s ", yamuxFlagLongName)
 	}
 	fmt.Printf(
 		"  piping-tunnel -s %s server -p <YOUR PORT> %s%s %s\n",

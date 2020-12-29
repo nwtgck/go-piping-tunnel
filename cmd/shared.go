@@ -17,6 +17,15 @@ const (
 	cipherTypeOpenpgp string = "openpgp"
 	cipherTypeAesCtr         = "aes-ctr"
 )
+const defaultCipherType = cipherTypeAesCtr
+
+const (
+	yamuxFlagLongName                          string = "yamux"
+	symmetricallyEncryptsFlagLongName          string = "symmetric"
+	symmetricallyEncryptsFlagShortName         string = "c"
+	symmetricallyEncryptPassphraseFlagLongName string = "passphrase"
+	cipherTypeFlagLongName                            = "cipher-type"
+)
 
 func validateClientCipher(str string) error {
 	switch str {

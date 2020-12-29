@@ -19,9 +19,9 @@ var socksCipherType string
 func init() {
 	RootCmd.AddCommand(socksCmd)
 	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
-	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, "symmetric", "c", false, "Encrypt symmetrically")
-	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, "passphrase", "", "", "Passphrase for encryption")
-	socksCmd.Flags().StringVarP(&socksCipherType, "cipher-type", "", cipherTypeAesCtr, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
+	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
+	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
+	socksCmd.Flags().StringVarP(&socksCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
 }
 
 var socksCmd = &cobra.Command{
@@ -90,7 +90,7 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 	}
 	flags := ""
 	if socksYamux {
-		flags += "--yamux "
+		flags += fmt.Sprintf("--%s ", yamuxFlagLongName)
 	}
 	fmt.Println("[INFO] Hint: Client host (piping-tunnel)")
 	fmt.Printf(
