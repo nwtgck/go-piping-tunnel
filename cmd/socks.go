@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/armon/go-socks5"
-	"github.com/hashicorp/yamux"
+	"github.com/libp2p/go-yamux"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
@@ -18,7 +18,7 @@ var socksCipherType string
 
 func init() {
 	RootCmd.AddCommand(socksCmd)
-	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
+	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by libp2p/go-yamux")
 	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
 	socksCmd.Flags().StringVarP(&socksCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
@@ -69,7 +69,7 @@ var socksCmd = &cobra.Command{
 			return fmt.Errorf("--%s must be specified", yamuxFlagLongName)
 		}
 
-		fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
+		fmt.Println("[INFO] Multiplexing with libp2p/go-yamux")
 		socks5Conf := &socks5.Config{}
 		socks5Server, err := socks5.New(socks5Conf)
 		if err != nil {
@@ -113,7 +113,7 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 	if err != nil {
 		return err
 	}
-	yamuxSession, err := yamux.Server(duplex, nil)
+	yamuxSession, err := yamux.Server(util.NewDuplexConn(duplex), yamuxConfig())
 	if err != nil {
 		return err
 	}

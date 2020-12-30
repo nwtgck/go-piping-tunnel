@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/hashicorp/yamux"
+	"github.com/libp2p/go-yamux"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -25,7 +25,7 @@ func init() {
 	RootCmd.AddCommand(clientCmd)
 	clientCmd.Flags().IntVarP(&clientHostPort, "port", "p", 0, "TCP port of client host")
 	clientCmd.Flags().UintVarP(&clientServerToClientBufSize, "s-to-c-buf-size", "", 16, "Buffer size of server-to-client in bytes")
-	clientCmd.Flags().BoolVarP(&clientYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
+	clientCmd.Flags().BoolVarP(&clientYamux, yamuxFlagLongName, "", false, "Multiplex connection by libp2p/go-yamux")
 	clientCmd.Flags().BoolVarP(&clientSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	clientCmd.Flags().StringVarP(&clientSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
 	clientCmd.Flags().StringVarP(&clientCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
@@ -77,7 +77,7 @@ var clientCmd = &cobra.Command{
 		}
 		// Use multiplexer with yamux
 		if clientYamux {
-			fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
+			fmt.Println("[INFO] Multiplexing with libp2p/go-yamux")
 			return clientHandleWithYamux(ln, httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
 		conn, err := ln.Accept()
@@ -200,7 +200,7 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 	if err != nil {
 		return err
 	}
-	yamuxSession, err := yamux.Client(duplex, nil)
+	yamuxSession, err := yamux.Client(util.NewDuplexConn(duplex), yamuxConfig())
 	if err != nil {
 		return err
 	}

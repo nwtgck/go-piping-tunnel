@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/libp2p/go-yamux"
 	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -106,4 +108,12 @@ func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers 
 		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
 	return duplex, nil
+}
+
+func yamuxConfig() *yamux.Config {
+	config := yamux.DefaultConfig()
+	config.ReadBufSize = 0
+	// https://github.com/libp2p/go-libp2p-yamux/blob/fd327d73bb4674db309ebe5c176a36253479f4af/transport.go#L22
+	config.LogOutput = ioutil.Discard
+	return config
 }
