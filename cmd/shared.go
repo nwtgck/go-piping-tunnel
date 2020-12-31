@@ -7,6 +7,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"os"
@@ -34,7 +35,7 @@ func validateClientCipher(str string) error {
 	case cipherTypeOpenpgp:
 		return nil
 	default:
-		return fmt.Errorf("invalid cipher type: %s", str)
+		return errors.Errorf("invalid cipher type: %s", str)
 	}
 }
 
@@ -52,7 +53,7 @@ func generatePaths(args []string) (string, string, error) {
 		clientToServerPath = args[0]
 		serverToClientPath = args[1]
 	default:
-		return "", "", fmt.Errorf("the number of paths should be one or two")
+		return "", "", errors.New("the number of paths should be one or two")
 	}
 	return clientToServerPath, serverToClientPath, nil
 }
@@ -95,7 +96,7 @@ func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers 
 			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(passphrase))
 			cipherName = "OpenPGP"
 		default:
-			return nil, fmt.Errorf("unexpected cipher type: %s", cipherType)
+			return nil, errors.Errorf("unexpected cipher type: %s", cipherType)
 		}
 		if err != nil {
 			return nil, err

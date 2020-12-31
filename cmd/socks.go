@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/yamux"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"net/http"
 	"strings"
@@ -66,7 +67,7 @@ var socksCmd = &cobra.Command{
 		}
 		// If not use multiplexer with yamux
 		if !socksYamux {
-			return fmt.Errorf("--%s must be specified", yamuxFlagLongName)
+			return errors.Errorf("--%s must be specified", yamuxFlagLongName)
 		}
 
 		fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
