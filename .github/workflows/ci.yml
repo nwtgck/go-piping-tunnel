@@ -40,7 +40,7 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: ^1.15
-    - run: go build -o piping-tunnel main/main.go
+    - run: CGO_ENABLED=0 go build -o piping-tunnel main/main.go
 
     # Normal tunnel
     - run: ./piping-tunnel -s http://localhost:8080 server -p 2022 aaa bbb &
