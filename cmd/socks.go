@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/armon/go-socks5"
+	"github.com/cybozu-go/usocksd"
+	"github.com/cybozu-go/well"
 	"github.com/hashicorp/yamux"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -71,12 +73,7 @@ var socksCmd = &cobra.Command{
 		}
 
 		fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
-		socks5Conf := &socks5.Config{}
-		socks5Server, err := socks5.New(socks5Conf)
-		if err != nil {
-			return err
-		}
-		return socksHandleWithYamux(socks5Server, httpClient, headers, clientToServerUrl, serverToClientUrl)
+		return socksHandleWithYamux(httpClient, headers, clientToServerUrl, serverToClientUrl)
 	},
 }
 
@@ -109,20 +106,16 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 	)
 }
 
-func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+func socksHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
 	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
 	if err != nil {
 		return err
 	}
+
 	yamuxSession, err := yamux.Server(duplex, nil)
-	if err != nil {
-		return err
-	}
-	for {
-		yamuxStream, err := yamuxSession.Accept()
-		if err != nil {
-			return err
-		}
-		go socks5Server.ServeConn(yamuxStream)
-	}
+	socksServer := usocksd.NewServer(usocksd.NewConfig())
+	socksServer.Serve(yamuxSession)
+	// NOTE: discard log output
+	socksServer.Logger.SetOutput(ioutil.Discard)
+	return well.Wait()
 }
