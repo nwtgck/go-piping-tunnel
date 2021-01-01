@@ -3,14 +3,12 @@ package cmd
 import (
 	"fmt"
 	"github.com/hashicorp/yamux"
-	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -104,44 +102,7 @@ var serverCmd = &cobra.Command{
 			}()
 			return util.CombineErrors(<-fin, <-fin)
 		}
-		var progress *io_progress.IOProgress = nil
-		if showProgress {
-			progress = io_progress.NewIOProgress(conn, conn, os.Stderr, makeProgressMessage)
-		}
-		var reader io.Reader = conn
-		if progress != nil {
-			reader = progress
-		}
-		req, err := http.NewRequest("POST", serverToClientUrl, reader)
-		if err != nil {
-			return err
-		}
-		req.Header.Set("Content-Type", "application/octet-stream")
-		for _, kv := range headers {
-			req.Header.Set(kv.Key, kv.Value)
-		}
-		_, err = httpClient.Do(req)
-		if err != nil {
-			return err
-		}
-
-		req, err = http.NewRequest("GET", clientToServerUrl, nil)
-		if err != nil {
-			return err
-		}
-		for _, kv := range headers {
-			req.Header.Set(kv.Key, kv.Value)
-		}
-		res, err := httpClient.Do(req)
-		if err != nil {
-			return err
-		}
-		var writer io.Writer = conn
-		if progress != nil {
-			writer = progress
-		}
-		var buf = make([]byte, serverClientToServerBufSize)
-		_, err = io.CopyBuffer(writer, res.Body, buf)
+		err = piping_tunnel_util.HandleDuplex(httpClient, conn, headers, serverToClientUrl, clientToServerUrl, serverClientToServerBufSize, showProgress, makeProgressMessage)
 		fmt.Println()
 		if err != nil {
 			return err
