@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.8.0] - 2021-01-01
+### Added
+* Add -c flag to symmetrically
+* Add a feature of encrypting with OpenPGP 
+* Add a feature of encrypting with AES-CTR
+* Add --cipher-type flag
+
 ## [0.7.0] - 2020-12-26
 ### Changed
 * Add examples to help
@@ -69,7 +76,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 * Initial release
 
-[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.4.2...v0.5.0
