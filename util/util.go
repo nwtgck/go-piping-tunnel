@@ -2,13 +2,19 @@ package util
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"fmt"
+	"github.com/mattn/go-tty"
+	"io"
 	"math"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"path"
+	"syscall"
 	"time"
 )
 
@@ -76,4 +82,67 @@ func HumanizeBytes(s float64) string {
 // (from: https://github.com/schollz/progressbar/blob/9c6973820b2153b15d2e6a08d8705ec981fda59f/progressbar.go#L784-L799)
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
+}
+
+type combinedError struct {
+	e1 error
+	e2 error
+}
+
+func (e combinedError) Error() string {
+	return fmt.Sprintf("%v and %v", e.e1, e.e2)
+}
+
+func CombineErrors(e1 error, e2 error) error {
+	if e1 == nil {
+		return e2
+	}
+	if e2 == nil {
+		return e1
+	}
+	return &combinedError{e1: e1, e2: e2}
+}
+
+func InputPassphrase() (string, error) {
+	tty, err := tty.Open()
+	if err != nil {
+		return "", err
+	}
+	defer tty.Close()
+	quitCh := make(chan os.Signal)
+	doneCh := make(chan struct{})
+	defer func() {
+		// End this input-function normally
+		doneCh <- struct{}{}
+	}()
+	go func() {
+		signal.Notify(quitCh, syscall.SIGINT)
+		for {
+			select {
+			// Signal from OS
+			case <-quitCh:
+				tty.Close()
+				fmt.Println()
+				os.Exit(0)
+			// End this input-function normally
+			case <-doneCh:
+				signal.Stop(quitCh)
+				return
+			}
+		}
+	}()
+	fmt.Fprint(tty.Output(), "Passphrase: ")
+	passphrase, err := tty.ReadPasswordNoEcho()
+	if err != nil {
+		return "", err
+	}
+	return passphrase, nil
+}
+
+func GenerateRandomBytes(len int) ([]byte, error) {
+	bytes := make([]byte, len)
+	if _, err := io.ReadFull(rand.Reader, bytes); err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }

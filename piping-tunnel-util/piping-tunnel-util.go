@@ -1,7 +1,7 @@
 package piping_tunnel_util
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -15,7 +15,7 @@ func ParseKeyValueStrings(strKeyValues []string) ([]KeyValue, error) {
 	for _, str := range strKeyValues {
 		splitted := strings.SplitN(str, ":", 2)
 		if len(splitted) != 2 {
-			return nil, fmt.Errorf("invalid header format '%s'", str)
+			return nil, errors.Errorf("invalid header format '%s'", str)
 		}
 		keyValues = append(keyValues, KeyValue{Key: splitted[0], Value: splitted[1]})
 	}

@@ -1,19 +1,20 @@
 package piping_tunnel_util
 
 import (
+	"github.com/nwtgck/go-piping-tunnel/util"
 	"io"
 	"net/http"
 )
 
-type PipingDuplex struct {
+type pipingDuplex struct {
 	downloadReaderChan <-chan interface{} // io.ReadCloser or error
 	uploadWriter       *io.PipeWriter
 	downloadReader     io.ReadCloser
 }
 
-func NewPipingDuplex(httpClient *http.Client, headers []KeyValue, uploadPath, downloadPath string) (*PipingDuplex, error) {
+func DuplexConnect(httpClient *http.Client, headers []KeyValue, uploadUrl, downloadUrl string) (*pipingDuplex, error) {
 	uploadPr, uploadPw := io.Pipe()
-	req, err := http.NewRequest("POST", uploadPath, uploadPr)
+	req, err := http.NewRequest("POST", uploadUrl, uploadPr)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +29,7 @@ func NewPipingDuplex(httpClient *http.Client, headers []KeyValue, uploadPath, do
 
 	downloadReaderChan := make(chan interface{})
 	go func() {
-		req, err = http.NewRequest("GET", downloadPath, nil)
+		req, err = http.NewRequest("GET", downloadUrl, nil)
 		if err != nil {
 			downloadReaderChan <- err
 			return
@@ -44,15 +45,15 @@ func NewPipingDuplex(httpClient *http.Client, headers []KeyValue, uploadPath, do
 		downloadReaderChan <- res.Body
 	}()
 
-	return &PipingDuplex{
+	return &pipingDuplex{
 		downloadReaderChan: downloadReaderChan,
 		uploadWriter:       uploadPw,
 	}, nil
 }
 
-func (pd *PipingDuplex) Read(b []byte) (n int, err error) {
+func (pd *pipingDuplex) Read(b []byte) (n int, err error) {
 	if pd.downloadReaderChan != nil {
-		// Get io.ReaderCloser or error
+		// Get io.ReadCloser or error
 		result := <-pd.downloadReaderChan
 		// If result is error
 		if err, ok := result.(error); ok {
@@ -64,15 +65,12 @@ func (pd *PipingDuplex) Read(b []byte) (n int, err error) {
 	return pd.downloadReader.Read(b)
 }
 
-func (pd *PipingDuplex) Write(b []byte) (n int, err error) {
+func (pd *pipingDuplex) Write(b []byte) (n int, err error) {
 	return pd.uploadWriter.Write(b)
 }
 
-func (pd *PipingDuplex) Close() error {
-	err := pd.uploadWriter.Close()
-	if err != nil {
-		return err
-	}
-	err = pd.downloadReader.Close()
-	return err
+func (pd *pipingDuplex) Close() error {
+	wErr := pd.uploadWriter.Close()
+	rErr := pd.downloadReader.Close()
+	return util.CombineErrors(wErr, rErr)
 }
