@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"github.com/hashicorp/yamux"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
+	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -81,30 +81,38 @@ var clientCmd = &cobra.Command{
 			return clientHandleWithYamux(ln, httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
 		// TODO: Hard code
-		// piping-mux
+		// pmux
 		if true {
-			seqNum := 1
+			pmuxClient := pmux.Client(httpClient, headers, clientToServerUrl, serverToClientUrl)
 			for {
 				conn, err := ln.Accept()
 				if err != nil {
 					break
 				}
-				uploadUrl, err := util.UrlJoin(clientToServerUrl, strconv.Itoa(seqNum))
-				downloadUrl, err := util.UrlJoin(serverToClientUrl, strconv.Itoa(seqNum))
+				stream, err := pmuxClient.Open()
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "error: %v", err)
-					break
+					// TODO:
+					fmt.Fprintf(os.Stderr, "error: %v\n", err)
+					continue
 				}
-				fmt.Println("uploadUrl:", uploadUrl, "downloadUrl", downloadUrl)
 				go func() {
-					err = piping_tunnel_util.HandleDuplex(httpClient, conn, headers, uploadUrl, downloadUrl, clientServerToClientBufSize, nil, showProgress, makeProgressMessage)
-					// TODO: better handling
+					// TODO: use CopyBuffer
+					_, err := io.Copy(conn, stream)
 					if err != nil {
-						fmt.Fprintf(os.Stderr, "error: %v", err)
+						// TODO:
+						fmt.Fprintf(os.Stderr, "error: %v\n", err)
 						return
 					}
 				}()
-				seqNum += 1
+
+				go func() {
+					_, err := io.Copy(stream, conn)
+					if err != nil {
+						// TODO:
+						fmt.Fprintf(os.Stderr, "error: %v\n", err)
+						return
+					}
+				}()
 			}
 			return err
 		}

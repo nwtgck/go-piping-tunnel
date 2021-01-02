@@ -5,10 +5,11 @@ import (
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
+	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -65,14 +66,37 @@ var socksCmd = &cobra.Command{
 				return err
 			}
 		}
-		// If not use multiplexer with yamux
-		if !socksYamux {
-			return errors.Errorf("--%s must be specified", yamuxFlagLongName)
-		}
 
-		fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
 		socks5Conf := &socks5.Config{}
 		socks5Server, err := socks5.New(socks5Conf)
+
+		// TODO: Hard code
+		// pmux
+		if true {
+			pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
+			for {
+				stream, err := pmuxServer.Accept()
+				if err != nil {
+					return err
+				}
+				// TODO: remove
+				fmt.Println("pmux accepted")
+				go func() {
+					err := socks5Server.ServeConn(util.NewDuplexConn(stream))
+					if err != nil {
+						// TODO:
+						fmt.Fprintf(os.Stderr, "error: %v\n", err)
+					}
+				}()
+			}
+			return nil
+		}
+		//// If not use multiplexer with yamux
+		//if !socksYamux {
+		//	return errors.Errorf("--%s must be specified", yamuxFlagLongName)
+		//}
+
+		fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
 		if err != nil {
 			return err
 		}
