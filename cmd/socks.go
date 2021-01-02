@@ -7,6 +7,7 @@ import (
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"net/http"
 	"os"
@@ -85,7 +86,7 @@ var socksCmd = &cobra.Command{
 					err := socks5Server.ServeConn(util.NewDuplexConn(stream))
 					if err != nil {
 						// TODO:
-						fmt.Fprintf(os.Stderr, "error: %v\n", err)
+						fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
 					}
 				}()
 			}

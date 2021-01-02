@@ -6,6 +6,7 @@ import (
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
@@ -92,26 +93,40 @@ var clientCmd = &cobra.Command{
 				stream, err := pmuxClient.Open()
 				if err != nil {
 					// TODO:
-					fmt.Fprintf(os.Stderr, "error: %v\n", err)
+					fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
 					continue
 				}
+				fin := make(chan struct{})
 				go func() {
-					// TODO: use CopyBuffer
-					_, err := io.Copy(conn, stream)
+					// TODO: hard code
+					var buf = make([]byte, 16)
+					_, err := io.CopyBuffer(conn, stream, buf)
+					fin <- struct{}{}
 					if err != nil {
 						// TODO:
-						fmt.Fprintf(os.Stderr, "error: %v\n", err)
+						fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
 						return
 					}
 				}()
 
 				go func() {
-					_, err := io.Copy(stream, conn)
+					// TODO: hard code
+					var buf = make([]byte, 16)
+					_, err := io.CopyBuffer(stream, conn, buf)
+					fin <- struct{}{}
 					if err != nil {
 						// TODO:
-						fmt.Fprintf(os.Stderr, "error: %v\n", err)
+						fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
 						return
 					}
+				}()
+
+				go func() {
+					<-fin
+					<-fin
+					conn.Close()
+					stream.Close()
+					close(fin)
 				}()
 			}
 			return err

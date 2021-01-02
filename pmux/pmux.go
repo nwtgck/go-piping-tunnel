@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 type server struct {
@@ -26,8 +27,9 @@ type client struct {
 }
 
 type stream struct {
-	rc io.ReadCloser
-	pw *io.PipeWriter
+	rc    io.ReadCloser
+	pw    *io.PipeWriter
+	mutex *sync.Mutex
 }
 
 func (s *stream) Read(p []byte) (int, error) {
@@ -72,6 +74,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("server seq id:", s.seqId)
 
 	uploadUrl, err := util.UrlJoin(s.baseUploadUrl, strconv.Itoa(int(s.seqId)))
 	uploadPr, uploadPw := io.Pipe()
@@ -108,6 +111,7 @@ func Client(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, base
 func (c *client) Open() (io.ReadWriteCloser, error) {
 	// FIXME: handle overflow
 	c.seqId += 1
+	fmt.Println("client seq id:", c.seqId)
 	uploadUrl, err := util.UrlJoin(c.baseUploadUrl, strconv.Itoa(int(c.seqId)))
 	if err != nil {
 		return nil, err
