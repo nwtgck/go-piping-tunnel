@@ -27,7 +27,7 @@ func ParseKeyValueStrings(strKeyValues []string) ([]KeyValue, error) {
 }
 
 // NOTE: duplex is usually conn
-func HandleDuplex(httpClient *http.Client, duplex io.ReadWriteCloser, headers []KeyValue, uploadUrl string, downloadUrl string, downloadBufSize uint, showProgress bool, makeProgressMessage func(progress *io_progress.IOProgress) string) error {
+func HandleDuplex(httpClient *http.Client, duplex io.ReadWriteCloser, headers []KeyValue, uploadUrl string, downloadUrl string, downloadBufSize uint, arriveCh chan<- struct{}, showProgress bool, makeProgressMessage func(progress *io_progress.IOProgress) string) error {
 	var progress *io_progress.IOProgress = nil
 	if showProgress {
 		progress = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
@@ -58,6 +58,9 @@ func HandleDuplex(httpClient *http.Client, duplex io.ReadWriteCloser, headers []
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
+	}
+	if arriveCh != nil {
+		arriveCh <- struct{}{}
 	}
 	var writer io.Writer = duplex
 	if progress != nil {

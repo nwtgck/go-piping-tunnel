@@ -9,6 +9,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -75,6 +77,35 @@ var serverCmd = &cobra.Command{
 			fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
 			return serverHandleWithYamux(httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
+		// TODO: Hard code
+		// piping-mux
+		if true {
+			seqNum := 1
+			for {
+				conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
+				if err != nil {
+					break
+				}
+				uploadUrl, err := util.UrlJoin(serverToClientUrl, strconv.Itoa(seqNum))
+				downloadUrl, err := util.UrlJoin(clientToServerUrl, strconv.Itoa(seqNum))
+				fmt.Println("uploadUrl:", uploadUrl, "downloadUrl", downloadUrl)
+				if err != nil {
+					break
+				}
+				arriveCh := make(chan struct{})
+				go func() {
+					err = piping_tunnel_util.HandleDuplex(httpClient, conn, headers, uploadUrl, downloadUrl, clientServerToClientBufSize, arriveCh, showProgress, makeProgressMessage)
+					// TODO: better handling
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "error: %v", err)
+						return
+					}
+				}()
+				<-arriveCh
+				seqNum += 1
+			}
+			return nil
+		}
 
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
 		if err != nil {
@@ -102,7 +133,7 @@ var serverCmd = &cobra.Command{
 			}()
 			return util.CombineErrors(<-fin, <-fin)
 		}
-		err = piping_tunnel_util.HandleDuplex(httpClient, conn, headers, serverToClientUrl, clientToServerUrl, serverClientToServerBufSize, showProgress, makeProgressMessage)
+		err = piping_tunnel_util.HandleDuplex(httpClient, conn, headers, serverToClientUrl, clientToServerUrl, serverClientToServerBufSize, nil, showProgress, makeProgressMessage)
 		fmt.Println()
 		if err != nil {
 			return err
