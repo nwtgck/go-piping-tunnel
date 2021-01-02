@@ -17,6 +17,7 @@ import (
 var serverHostPort int
 var serverClientToServerBufSize uint
 var serverYamux bool
+var serverPmux bool
 var serverSymmetricallyEncrypts bool
 var serverSymmetricallyEncryptPassphrase string
 var serverCipherType string
@@ -27,6 +28,7 @@ func init() {
 	serverCmd.MarkFlagRequired("port")
 	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "c-to-s-buf-size", "", 16, "Buffer size of client-to-server in bytes")
 	serverCmd.Flags().BoolVarP(&serverYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
+	serverCmd.Flags().BoolVarP(&serverPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
 	serverCmd.Flags().BoolVarP(&serverSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	serverCmd.Flags().StringVarP(&serverSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
 	serverCmd.Flags().StringVarP(&serverCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
@@ -77,9 +79,9 @@ var serverCmd = &cobra.Command{
 			fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
 			return serverHandleWithYamux(httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
-		// TODO: Hard code
-		// pmux
-		if true {
+
+		// If pmux is enabled
+		if serverPmux {
 			pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
 			for {
 				stream, err := pmuxServer.Accept()

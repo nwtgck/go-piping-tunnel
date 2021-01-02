@@ -15,6 +15,7 @@ import (
 )
 
 var socksYamux bool
+var socksPmux bool
 var socksSymmetricallyEncrypts bool
 var socksSymmetricallyEncryptPassphrase string
 var socksCipherType string
@@ -22,6 +23,7 @@ var socksCipherType string
 func init() {
 	RootCmd.AddCommand(socksCmd)
 	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
+	socksCmd.Flags().BoolVarP(&socksPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
 	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
 	socksCmd.Flags().StringVarP(&socksCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
@@ -68,12 +70,16 @@ var socksCmd = &cobra.Command{
 			}
 		}
 
+		// If not using multiplexer
+		if !socksYamux && !socksPmux {
+			return errors.Errorf("--%s or --%s must be specified", yamuxFlagLongName, pmuxFlagLongName)
+		}
+
 		socks5Conf := &socks5.Config{}
 		socks5Server, err := socks5.New(socks5Conf)
 
-		// TODO: Hard code
-		// pmux
-		if true {
+		// If pmux is enabled
+		if socksPmux {
 			pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
 			for {
 				stream, err := pmuxServer.Accept()
@@ -92,10 +98,6 @@ var socksCmd = &cobra.Command{
 			}
 			return nil
 		}
-		//// If not use multiplexer with yamux
-		//if !socksYamux {
-		//	return errors.Errorf("--%s must be specified", yamuxFlagLongName)
-		//}
 
 		fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
 		if err != nil {
