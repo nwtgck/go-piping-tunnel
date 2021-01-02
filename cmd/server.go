@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/hashicorp/yamux"
+	mplex "github.com/libp2p/go-mplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -186,12 +186,15 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 	if err != nil {
 		return err
 	}
-	yamuxSession, err := yamux.Server(duplex, nil)
+	//yamuxSession, err := yamux.Server(duplex, nil)
+	// TODO: this overwrites yamux (--yamux means mplex now)
+	multiplex := mplex.NewMultiplex(util.NewDuplexConn(duplex), false)
 	if err != nil {
 		return err
 	}
 	for {
-		yamuxStream, err := yamuxSession.Accept()
+		//yamuxStream, err := yamuxSession.Accept()
+		stream, err := multiplex.Accept()
 		if err != nil {
 			return err
 		}
@@ -203,13 +206,13 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 		go func() {
 			// TODO: hard code
 			var buf = make([]byte, 16)
-			io.CopyBuffer(yamuxStream, conn, buf)
+			io.CopyBuffer(stream, conn, buf)
 			fin <- struct{}{}
 		}()
 		go func() {
 			// TODO: hard code
 			var buf = make([]byte, 16)
-			io.CopyBuffer(conn, yamuxStream, buf)
+			io.CopyBuffer(conn, stream, buf)
 			fin <- struct{}{}
 		}()
 		go func() {
@@ -217,7 +220,7 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 			<-fin
 			close(fin)
 			conn.Close()
-			yamuxStream.Close()
+			stream.Close()
 		}()
 	}
 }

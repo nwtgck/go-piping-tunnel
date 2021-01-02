@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/armon/go-socks5"
-	"github.com/hashicorp/yamux"
+	mplex "github.com/libp2p/go-mplex"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
@@ -114,15 +114,18 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 	if err != nil {
 		return err
 	}
-	yamuxSession, err := yamux.Server(duplex, nil)
+	//yamuxSession, err := yamux.Server(duplex, nil)
+	// TODO: this overwrites yamux (--yamux means mplex now)
+	multiplex := mplex.NewMultiplex(util.NewDuplexConn(duplex), false)
 	if err != nil {
 		return err
 	}
 	for {
-		yamuxStream, err := yamuxSession.Accept()
+		//yamuxStream, err := yamuxSession.Accept()
+		stream, err := multiplex.Accept()
 		if err != nil {
 			return err
 		}
-		go socks5Server.ServeConn(yamuxStream)
+		go socks5Server.ServeConn(util.NewDuplexConn(stream))
 	}
 }

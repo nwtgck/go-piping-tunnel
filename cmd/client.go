@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"github.com/hashicorp/yamux"
+	mplex "github.com/libp2p/go-mplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -200,7 +201,9 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 	if err != nil {
 		return err
 	}
-	yamuxSession, err := yamux.Client(duplex, nil)
+	//yamuxSession, err := yamux.Client(duplex, nil)
+	// TODO: this overwrites yamux (--yamux means mplex now)
+	multiplex := mplex.NewMultiplex(util.NewDuplexConn(duplex), false)
 	if err != nil {
 		return err
 	}
@@ -210,7 +213,8 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 		if err != nil {
 			return err
 		}
-		yamuxStream, err := yamuxSession.Open()
+		//yamuxStream, err := yamuxSession.Open()
+		yamuxStream, err := multiplex.NewStream(context.Background())
 		if err != nil {
 			return err
 		}
