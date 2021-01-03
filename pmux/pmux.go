@@ -4,7 +4,9 @@ package pmux
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
+	"github.com/nwtgck/go-piping-tunnel/early_piping_duplex"
 	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
@@ -68,6 +70,7 @@ func (s *server) getSubPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("get", packet)
 	return packet.SubPath, nil
 }
 
@@ -79,6 +82,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 		if err == nil {
 			break
 		}
+		fmt.Println("get sync error", err)
 	}
 	uploadUrl, err := util.UrlJoin(s.baseUploadUrl, subPath)
 	if err != nil {
@@ -88,7 +92,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	duplex, err := piping_tunnel_util.DuplexConnect(s.httpClient, s.headers, uploadUrl, downloadUrl)
+	duplex, err := early_piping_duplex.DuplexConnect(s.httpClient, s.headers, uploadUrl, downloadUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +111,7 @@ func Client(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, base
 func (c *client) sendSubPath() (string, error) {
 	subPath := strings.Replace(uuid.New().String(), "-", "", 4)
 	packet := syncPacket{SubPath: subPath}
+	fmt.Println("send", packet)
 	jsonBytes, err := json.Marshal(packet)
 	if err != nil {
 		return "", err
@@ -142,6 +147,7 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 		if err == nil {
 			break
 		}
+		fmt.Println("send sync error", err)
 	}
 	uploadUrl, err := util.UrlJoin(c.baseUploadUrl, subPath)
 	if err != nil {
@@ -151,7 +157,7 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	duplex, err := piping_tunnel_util.DuplexConnect(c.httpClient, c.headers, uploadUrl, downloadUrl)
+	duplex, err := early_piping_duplex.DuplexConnect(c.httpClient, c.headers, uploadUrl, downloadUrl)
 	if err != nil {
 		return nil, err
 	}
