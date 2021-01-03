@@ -50,14 +50,7 @@ func (s *server) getSubPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req, err := http.NewRequest("GET", downloadUrl, nil)
-	if err != nil {
-		return "", err
-	}
-	for _, kv := range s.headers {
-		req.Header.Set(kv.Key, kv.Value)
-	}
-	getRes, err := s.httpClient.Do(req)
+	getRes, err := piping_util.PipingGet(s.httpClient, s.headers, downloadUrl)
 	if err != nil {
 		return "", err
 	}
@@ -120,15 +113,7 @@ func (c *client) sendSubPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req, err := http.NewRequest("POST", uploadUrl, bytes.NewReader(jsonBytes))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/octet-stream")
-	for _, kv := range c.headers {
-		req.Header.Set(kv.Key, kv.Value)
-	}
-	res, err := c.httpClient.Do(req)
+	res, err := piping_util.PipingSend(c.httpClient, c.headers, uploadUrl, bytes.NewReader(jsonBytes))
 	if err != nil {
 		return "", err
 	}

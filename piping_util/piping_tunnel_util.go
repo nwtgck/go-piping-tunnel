@@ -36,26 +36,11 @@ func HandleDuplex(httpClient *http.Client, duplex io.ReadWriteCloser, headers []
 	if progress != nil {
 		reader = progress
 	}
-	req, err := http.NewRequest("POST", uploadUrl, reader)
+	_, err := PipingSend(httpClient, headers, uploadUrl, reader)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/octet-stream")
-	for _, kv := range headers {
-		req.Header.Set(kv.Key, kv.Value)
-	}
-	_, err = httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	req, err = http.NewRequest("GET", downloadUrl, nil)
-	if err != nil {
-		return err
-	}
-	for _, kv := range headers {
-		req.Header.Set(kv.Key, kv.Value)
-	}
-	res, err := httpClient.Do(req)
+	res, err := PipingGet(httpClient, headers, downloadUrl)
 	if err != nil {
 		return err
 	}

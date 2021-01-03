@@ -20,16 +20,7 @@ func DuplexConnect(httpClient *http.Client, headers []piping_util.KeyValue, uplo
 
 	go func() {
 		uploadPr, uploadPw := io.Pipe()
-		req, err := http.NewRequest("POST", uploadUrl, uploadPr)
-		if err != nil {
-			uploadWriterChan <- err
-			return
-		}
-		req.Header.Set("Content-Type", "application/octet-stream")
-		for _, kv := range headers {
-			req.Header.Set(kv.Key, kv.Value)
-		}
-		_, err = httpClient.Do(req)
+		_, err := piping_util.PipingSend(httpClient, headers, uploadUrl, uploadPr)
 		if err != nil {
 			uploadWriterChan <- err
 			return
@@ -39,15 +30,7 @@ func DuplexConnect(httpClient *http.Client, headers []piping_util.KeyValue, uplo
 
 	downloadReaderChan := make(chan interface{})
 	go func() {
-		req, err := http.NewRequest("GET", downloadUrl, nil)
-		if err != nil {
-			downloadReaderChan <- err
-			return
-		}
-		for _, kv := range headers {
-			req.Header.Set(kv.Key, kv.Value)
-		}
-		res, err := httpClient.Do(req)
+		res, err := piping_util.PipingGet(httpClient, headers, downloadUrl)
 		if err != nil {
 			downloadReaderChan <- err
 			return
