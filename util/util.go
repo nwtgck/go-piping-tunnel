@@ -19,12 +19,12 @@ import (
 )
 
 // (base: https://stackoverflow.com/a/34668130/2885946)
-func UrlJoin(s string, p string) (string, error) {
+func UrlJoin(s string, p ...string) (string, error) {
 	u, err := url.Parse(s)
 	if err != nil {
 		return "", err
 	}
-	u.Path = path.Join(u.Path, p)
+	u.Path = path.Join(append([]string{u.Path}, p...)...)
 	return u.String(), nil
 }
 

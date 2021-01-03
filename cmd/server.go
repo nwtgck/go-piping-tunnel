@@ -95,8 +95,9 @@ var serverCmd = &cobra.Command{
 					return err
 				}
 				go func() {
-					// TODO: use CopyBuffer
-					_, err := io.Copy(conn, stream)
+					// TODO: hard code
+					var buf = make([]byte, 16)
+					_, err := io.CopyBuffer(conn, stream, buf)
 					if err != nil {
 						// TODO:
 						fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -105,7 +106,9 @@ var serverCmd = &cobra.Command{
 				}()
 
 				go func() {
-					_, err := io.Copy(stream, conn)
+					// TODO: hard code
+					var buf = make([]byte, 16)
+					_, err := io.CopyBuffer(stream, conn, buf)
 					if err != nil {
 						// TODO:
 						fmt.Fprintf(os.Stderr, "error: %v\n", err)
