@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/nwtgck/go-piping-tunnel/early_piping_duplex"
-	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
+	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
 	"io"
@@ -18,14 +18,14 @@ import (
 
 type server struct {
 	httpClient      *http.Client
-	headers         []piping_tunnel_util.KeyValue
+	headers         []piping_util.KeyValue
 	baseUploadUrl   string
 	baseDownloadUrl string
 }
 
 type client struct {
 	httpClient      *http.Client
-	headers         []piping_tunnel_util.KeyValue
+	headers         []piping_util.KeyValue
 	baseUploadUrl   string
 	baseDownloadUrl string
 }
@@ -36,7 +36,7 @@ type syncPacket struct {
 
 const syncPath = "sync"
 
-func Server(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) *server {
+func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) *server {
 	return &server{
 		httpClient:      httpClient,
 		headers:         headers,
@@ -99,7 +99,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	return duplex, err
 }
 
-func Client(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) *client {
+func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) *client {
 	return &client{
 		httpClient:      httpClient,
 		headers:         headers,

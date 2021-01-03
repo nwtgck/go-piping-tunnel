@@ -5,7 +5,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
-	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
+	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
 	"io"
@@ -79,9 +79,9 @@ func makeUserInputPassphraseIfEmpty(passphrase *string) (err error) {
 	return nil
 }
 
-func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, uploadUrl, downloadUrl string, encrypts bool, passphrase string, cipherType string) (io.ReadWriteCloser, error) {
+func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers []piping_util.KeyValue, uploadUrl, downloadUrl string, encrypts bool, passphrase string, cipherType string) (io.ReadWriteCloser, error) {
 	var duplex io.ReadWriteCloser
-	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, uploadUrl, downloadUrl)
+	duplex, err := piping_util.DuplexConnect(httpClient, headers, uploadUrl, downloadUrl)
 	if err != nil {
 		return nil, err
 	}

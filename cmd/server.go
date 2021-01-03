@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/hashicorp/yamux"
-	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
+	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/spf13/cobra"
@@ -48,7 +48,7 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		headers, err := piping_tunnel_util.ParseKeyValueStrings(headerKeyValueStrs)
+		headers, err := piping_util.ParseKeyValueStrings(headerKeyValueStrs)
 		if err != nil {
 			return err
 		}
@@ -145,7 +145,7 @@ var serverCmd = &cobra.Command{
 			}()
 			return util.CombineErrors(<-fin, <-fin)
 		}
-		err = piping_tunnel_util.HandleDuplex(httpClient, conn, headers, serverToClientUrl, clientToServerUrl, serverClientToServerBufSize, nil, showProgress, makeProgressMessage)
+		err = piping_util.HandleDuplex(httpClient, conn, headers, serverToClientUrl, clientToServerUrl, serverClientToServerBufSize, nil, showProgress, makeProgressMessage)
 		fmt.Println()
 		if err != nil {
 			return err
@@ -185,7 +185,7 @@ func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, 
 	)
 }
 
-func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
 	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
 	if err != nil {
 		return err

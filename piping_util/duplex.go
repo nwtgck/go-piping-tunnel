@@ -1,4 +1,4 @@
-package piping_tunnel_util
+package piping_util
 
 import (
 	"github.com/nwtgck/go-piping-tunnel/util"

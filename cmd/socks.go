@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
-	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
+	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
@@ -43,7 +43,7 @@ var socksCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		headers, err := piping_tunnel_util.ParseKeyValueStrings(headerKeyValueStrs)
+		headers, err := piping_util.ParseKeyValueStrings(headerKeyValueStrs)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 	)
 }
 
-func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
 	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
 	if err != nil {
 		return err

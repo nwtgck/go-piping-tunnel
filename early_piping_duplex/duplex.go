@@ -2,7 +2,7 @@
 package early_piping_duplex
 
 import (
-	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
+	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"io"
 	"net/http"
@@ -15,7 +15,7 @@ type pipingDuplex struct {
 	downloadReader     io.ReadCloser
 }
 
-func DuplexConnect(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, uploadUrl, downloadUrl string) (*pipingDuplex, error) {
+func DuplexConnect(httpClient *http.Client, headers []piping_util.KeyValue, uploadUrl, downloadUrl string) (*pipingDuplex, error) {
 	uploadWriterChan := make(chan interface{})
 
 	go func() {
