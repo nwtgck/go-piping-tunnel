@@ -54,7 +54,10 @@ func (pd *pipingDuplex) Write(b []byte) (n int, err error) {
 }
 
 func (pd *pipingDuplex) Close() error {
+	var rErr error
 	wErr := pd.uploadWriter.Close()
-	rErr := pd.downloadReader.Close()
+	if pd.downloadReader != nil {
+		rErr = pd.downloadReader.Close()
+	}
 	return util.CombineErrors(wErr, rErr)
 }

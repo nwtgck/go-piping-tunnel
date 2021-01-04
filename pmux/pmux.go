@@ -54,16 +54,19 @@ func (s *server) getSubPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if getRes.StatusCode != 200 {
+		return "", errors.Errorf("not status 200, found: %d", getRes.StatusCode)
+	}
 	resBytes, err := ioutil.ReadAll(getRes.Body)
 	if err != nil {
 		return "", err
 	}
+	fmt.Println(string(resBytes))
 	var packet syncPacket
 	err = json.Unmarshal(resBytes, &packet)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("get", packet)
 	return packet.SubPath, nil
 }
 
@@ -75,7 +78,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 		if err == nil {
 			break
 		}
-		fmt.Println("get sync error", err)
+		fmt.Printf("get sync error: %+v\n", errors.WithStack(err))
 	}
 	uploadUrl, err := util.UrlJoin(s.baseUploadUrl, subPath)
 	if err != nil {
