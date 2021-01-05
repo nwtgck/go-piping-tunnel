@@ -17,6 +17,7 @@ import (
 var clientHostPort int
 var clientServerToClientBufSize uint
 var clientYamux bool
+var clientYamuxBufSize uint
 var clientSymmetricallyEncrypts bool
 var clientSymmetricallyEncryptPassphrase string
 var clientCipherType string
@@ -26,6 +27,7 @@ func init() {
 	clientCmd.Flags().IntVarP(&clientHostPort, "port", "p", 0, "TCP port of client host")
 	clientCmd.Flags().UintVarP(&clientServerToClientBufSize, "s-to-c-buf-size", "", 16, "Buffer size of server-to-client in bytes")
 	clientCmd.Flags().BoolVarP(&clientYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
+	clientCmd.Flags().UintVarP(&clientYamuxBufSize, "yamux-buf-size", "", 4096, "yamux buffer size in bytes")
 	clientCmd.Flags().BoolVarP(&clientSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	clientCmd.Flags().StringVarP(&clientSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
 	clientCmd.Flags().StringVarP(&clientCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
@@ -216,14 +218,12 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 		}
 		fin := make(chan struct{})
 		go func() {
-			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, clientYamuxBufSize)
 			io.CopyBuffer(yamuxStream, conn, buf)
 			fin <- struct{}{}
 		}()
 		go func() {
-			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, clientYamuxBufSize)
 			io.CopyBuffer(conn, yamuxStream, buf)
 			fin <- struct{}{}
 		}()
