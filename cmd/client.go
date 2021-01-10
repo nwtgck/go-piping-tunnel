@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 var clientHostPort int
@@ -92,12 +93,14 @@ var clientCmd = &cobra.Command{
 				if err != nil {
 					break
 				}
+				startTime := time.Now()
 				stream, err := pmuxClient.Open()
 				if err != nil {
 					// TODO:
 					fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
 					continue
 				}
+				fmt.Println("open time", startTime, time.Now())
 				fin := make(chan struct{})
 				go func() {
 					// TODO: hard code

@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type server struct {
@@ -46,6 +47,7 @@ func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadU
 }
 
 func (s *server) getSubPath() (string, error) {
+	startTime := time.Now()
 	downloadUrl, err := util.UrlJoin(s.baseDownloadUrl, syncPath)
 	if err != nil {
 		return "", err
@@ -61,7 +63,10 @@ func (s *server) getSubPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(string(resBytes))
+	if err = getRes.Body.Close(); err != nil {
+		return "", err
+	}
+	fmt.Println(string(resBytes), time.Now().Sub(startTime).Milliseconds())
 	var packet syncPacket
 	err = json.Unmarshal(resBytes, &packet)
 	if err != nil {
@@ -92,7 +97,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return duplex, err
+	return duplex, nil
 }
 
 func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) *client {
@@ -105,9 +110,10 @@ func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadU
 }
 
 func (c *client) sendSubPath() (string, error) {
+	startTime := time.Now()
 	subPath := strings.Replace(uuid.New().String(), "-", "", 4)
 	packet := syncPacket{SubPath: subPath}
-	fmt.Println("send", packet)
+	fmt.Println("sending          ", packet)
 	jsonBytes, err := json.Marshal(packet)
 	if err != nil {
 		return "", err
@@ -123,11 +129,19 @@ func (c *client) sendSubPath() (string, error) {
 	if res.StatusCode != 200 {
 		return "", errors.Errorf("not status 200, found: %d", res.StatusCode)
 	}
-	_, err = io.Copy(ioutil.Discard, res.Body)
-	return subPath, err
+	fmt.Println("send   got status", packet, time.Now().Sub(startTime).Milliseconds())
+	if _, err = io.Copy(ioutil.Discard, res.Body); err != nil {
+		return "", err
+	}
+	if err = res.Body.Close(); err != nil {
+		return "", err
+	}
+	fmt.Println("send read up body", packet, time.Now().Sub(startTime).Milliseconds())
+	return subPath, nil
 }
 
 func (c *client) Open() (io.ReadWriteCloser, error) {
+	startTime := time.Now()
 	var subPath string
 	for {
 		var err error
@@ -146,8 +160,9 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 		return nil, err
 	}
 	duplex, err := early_piping_duplex.DuplexConnect(c.httpClient, c.headers, uploadUrl, downloadUrl)
+	fmt.Println("open: create duplex connect       ", time.Now().Sub(startTime).Milliseconds())
 	if err != nil {
 		return nil, err
 	}
-	return duplex, err
+	return duplex, nil
 }
