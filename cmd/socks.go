@@ -83,6 +83,9 @@ var socksCmd = &cobra.Command{
 			pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
 			for {
 				stream, err := pmuxServer.Accept()
+				if err == pmux.NonPmuxMimeTypeError {
+					return errors.Errorf("--%s may be missing in client", pmuxFlagLongName)
+				}
 				if err != nil {
 					return err
 				}

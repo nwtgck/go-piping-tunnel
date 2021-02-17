@@ -34,7 +34,14 @@ type syncPacket struct {
 	SubPath string `json:"sub_path"`
 }
 
-const syncPath = "sync"
+const syncSubPath = ""
+const pmuxMimeType = "application/pmux"
+
+var NonPmuxMimeTypeError = errors.Errorf("invalid content-type, expected %s", pmuxMimeType)
+
+func headersWithPmux(headers []piping_util.KeyValue) []piping_util.KeyValue {
+	return append(headers, piping_util.KeyValue{Key: "Content-Type", Value: pmuxMimeType})
+}
 
 func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) *server {
 	return &server{
@@ -46,7 +53,7 @@ func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadU
 }
 
 func (s *server) getSubPath() (string, error) {
-	downloadUrl, err := util.UrlJoin(s.baseDownloadUrl, syncPath)
+	downloadUrl, err := util.UrlJoin(s.baseDownloadUrl, syncSubPath)
 	if err != nil {
 		return "", err
 	}
@@ -56,6 +63,10 @@ func (s *server) getSubPath() (string, error) {
 	}
 	if getRes.StatusCode != 200 {
 		return "", errors.Errorf("not status 200, found: %d", getRes.StatusCode)
+	}
+	contentType := getRes.Header.Get("Content-Type")
+	if contentType != pmuxMimeType {
+		return "", NonPmuxMimeTypeError
 	}
 	resBytes, err := ioutil.ReadAll(getRes.Body)
 	if err != nil {
@@ -77,6 +88,10 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 		subPath, err = s.getSubPath()
 		if err == nil {
 			break
+		}
+		// invalid content type will detect a misuse of flags
+		if err == NonPmuxMimeTypeError {
+			return nil, err
 		}
 		fmt.Printf("get sync error: %+v\n", errors.WithStack(err))
 	}
@@ -112,11 +127,11 @@ func (c *client) sendSubPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	uploadUrl, err := util.UrlJoin(c.baseUploadUrl, syncPath)
+	uploadUrl, err := util.UrlJoin(c.baseUploadUrl, syncSubPath)
 	if err != nil {
 		return "", err
 	}
-	res, err := piping_util.PipingSend(c.httpClient, c.headers, uploadUrl, bytes.NewReader(jsonBytes))
+	res, err := piping_util.PipingSend(c.httpClient, headersWithPmux(c.headers), uploadUrl, bytes.NewReader(jsonBytes))
 	if err != nil {
 		return "", err
 	}
@@ -145,7 +160,7 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	duplex, err := early_piping_duplex.DuplexConnect(c.httpClient, c.headers, uploadUrl, downloadUrl)
+	duplex, err := early_piping_duplex.DuplexConnect(c.httpClient, headersWithPmux(c.headers), uploadUrl, downloadUrl)
 	if err != nil {
 		return nil, err
 	}

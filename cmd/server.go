@@ -6,6 +6,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
@@ -85,6 +86,9 @@ var serverCmd = &cobra.Command{
 			pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
 			for {
 				stream, err := pmuxServer.Accept()
+				if err == pmux.NonPmuxMimeTypeError {
+					return errors.Errorf("--%s may be missing in client", pmuxFlagLongName)
+				}
 				if err != nil {
 					return err
 				}
