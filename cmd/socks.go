@@ -7,6 +7,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/nwtgck/go-piping-tunnel/version"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"net/http"
@@ -80,12 +81,18 @@ var socksCmd = &cobra.Command{
 
 		// If pmux is enabled
 		if socksPmux {
-			pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
-			for {
-				stream, err := pmuxServer.Accept()
+			pmuxServer, err := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
+			if err != nil {
 				if err == pmux.NonPmuxMimeTypeError {
 					return errors.Errorf("--%s may be missing in client", pmuxFlagLongName)
 				}
+				if err == pmux.IncompatiblePmuxVersion {
+					return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
+				}
+				return err
+			}
+			for {
+				stream, err := pmuxServer.Accept()
 				if err != nil {
 					return err
 				}
