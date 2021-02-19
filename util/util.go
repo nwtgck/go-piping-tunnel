@@ -146,3 +146,18 @@ func GenerateRandomBytes(len int) ([]byte, error) {
 	}
 	return bytes, nil
 }
+
+func WriteFull(w io.Writer, p []byte) error {
+	l := len(p)
+	for {
+		n, err := w.Write(p)
+		if err != nil {
+			return err
+		}
+		l -= n
+		if l == 0 {
+			return nil
+		}
+		p = p[n:]
+	}
+}

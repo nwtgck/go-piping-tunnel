@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/nwtgck/go-piping-tunnel/early_piping_duplex"
+	"github.com/nwtgck/go-piping-tunnel/heartbeat_duplex"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
@@ -150,7 +151,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return duplex, err
+	return heartbeat_duplex.Duplex(duplex), err
 }
 
 func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) (*client, error) {
@@ -252,5 +253,5 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return duplex, err
+	return heartbeat_duplex.Duplex(duplex), err
 }
