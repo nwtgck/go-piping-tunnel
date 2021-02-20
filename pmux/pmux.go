@@ -105,6 +105,14 @@ func (s *server) initialConnect() error {
 	return resultErr
 }
 
+type getSubPathStatusError struct {
+	statusCode int
+}
+
+func (e *getSubPathStatusError) Error() string {
+	return fmt.Sprintf("not status 200, found: %d", e.statusCode)
+}
+
 func (s *server) getSubPath() (string, error) {
 	downloadUrl, err := util.UrlJoin(s.baseDownloadUrl, syncSubPath)
 	if err != nil {
@@ -115,7 +123,7 @@ func (s *server) getSubPath() (string, error) {
 		return "", err
 	}
 	if getRes.StatusCode != 200 {
-		return "", errors.Errorf("not status 200, found: %d", getRes.StatusCode)
+		return "", &getSubPathStatusError{statusCode: getRes.StatusCode}
 	}
 	resBytes, err := ioutil.ReadAll(getRes.Body)
 	if err != nil {
@@ -136,6 +144,10 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 		subPath, err = s.getSubPath()
 		if err == nil {
 			break
+		}
+		// Skip error logging if status error
+		if _, ok := err.(*getSubPathStatusError); ok {
+			continue
 		}
 		fmt.Printf("get sync error: %+v\n", errors.WithStack(err))
 	}
