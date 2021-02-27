@@ -132,7 +132,7 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 	// (from: https://stackoverflow.com/a/43425461)
 	clientHostPort = ln.Addr().(*net.TCPAddr).Port
 	fmt.Printf("[INFO] Client host listening on %d ...\n", clientHostPort)
-	if !clientYamux {
+	if !clientYamux && !clientPmux {
 		fmt.Println("[INFO] Hint: Server host (socat + curl)")
 		fmt.Printf(
 			"  socat 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s' TCP:127.0.0.1:<YOUR PORT>\n",
@@ -150,6 +150,9 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 	}
 	if clientYamux {
 		flags += fmt.Sprintf("--%s ", yamuxFlagLongName)
+	}
+	if clientPmux {
+		flags += fmt.Sprintf("--%s ", pmuxFlagLongName)
 	}
 	fmt.Printf(
 		"  piping-tunnel -s %s server -p <YOUR PORT> %s%s %s\n",

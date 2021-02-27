@@ -92,7 +92,7 @@ var socksCmd = &cobra.Command{
 }
 
 func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
-	if !socksYamux {
+	if !socksYamux && !socksPmux {
 		fmt.Println("[INFO] Hint: Client host (socat + curl)")
 		fmt.Printf(
 			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
@@ -109,6 +109,9 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 	}
 	if socksYamux {
 		flags += fmt.Sprintf("--%s ", yamuxFlagLongName)
+	}
+	if socksPmux {
+		flags += fmt.Sprintf("--%s ", pmuxFlagLongName)
 	}
 	fmt.Println("[INFO] Hint: Client host (piping-tunnel)")
 	fmt.Printf(
