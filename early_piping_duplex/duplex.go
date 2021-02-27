@@ -4,42 +4,52 @@ package early_piping_duplex
 import (
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/pkg/errors"
 	"io"
 	"net/http"
 )
 
 type pipingDuplex struct {
-	uploadWriterChan   <-chan interface{} // *io.PipeWriter or error
-	downloadReaderChan <-chan interface{} // io.ReadCloser or error
 	uploadWriter       *io.PipeWriter
+	uploadErrChan      <-chan error
+	downloadReaderChan <-chan interface{} // io.ReadCloser or error
 	downloadReader     io.ReadCloser
 }
 
 func DuplexConnect(httpClient *http.Client, headers []piping_util.KeyValue, uploadUrl, downloadUrl string) (*pipingDuplex, error) {
-	uploadWriterChan := make(chan interface{})
-
+	uploadPr, uploadPw := io.Pipe()
+	uploadErrChan := make(chan error)
 	go func() {
-		uploadPr, uploadPw := io.Pipe()
-		_, err := piping_util.PipingSend(httpClient, headers, uploadUrl, uploadPr)
+		defer close(uploadErrChan)
+		res, err := piping_util.PipingSend(httpClient, headers, uploadUrl, uploadPr)
 		if err != nil {
-			uploadWriterChan <- err
+			uploadErrChan <- err
 			return
 		}
-		uploadWriterChan <- uploadPw
+		if res.StatusCode != 200 {
+			uploadErrChan <- errors.Errorf("not status 200, found: %d", res.StatusCode)
+			return
+		}
+		uploadErrChan <- nil
 	}()
 
 	downloadReaderChan := make(chan interface{})
 	go func() {
+		defer close(downloadReaderChan)
 		res, err := piping_util.PipingGet(httpClient, headers, downloadUrl)
 		if err != nil {
 			downloadReaderChan <- err
 			return
 		}
+		if res.StatusCode != 200 {
+			downloadReaderChan <- errors.Errorf("not status 200, found: %d", res.StatusCode)
+		}
 		downloadReaderChan <- res.Body
 	}()
 
 	return &pipingDuplex{
-		uploadWriterChan:   uploadWriterChan,
+		uploadWriter:       uploadPw,
+		uploadErrChan:      uploadErrChan,
 		downloadReaderChan: downloadReaderChan,
 	}, nil
 }
@@ -59,15 +69,12 @@ func (pd *pipingDuplex) Read(b []byte) (n int, err error) {
 }
 
 func (pd *pipingDuplex) Write(b []byte) (n int, err error) {
-	// Get *io.PipeWriter or error
-	if pd.uploadWriterChan != nil {
-		result := <-pd.uploadWriterChan
-		// If result is error
-		if err, ok := result.(error); ok {
+	select {
+	case err := <-pd.uploadErrChan:
+		if err != nil {
 			return 0, err
 		}
-		pd.uploadWriter = result.(*io.PipeWriter)
-		pd.uploadWriterChan = nil
+	default:
 	}
 	return pd.uploadWriter.Write(b)
 }
