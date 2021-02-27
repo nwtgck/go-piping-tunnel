@@ -2,7 +2,6 @@ package heartbeat_duplex
 
 import (
 	"encoding/binary"
-	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
 	"io"
 	"sync"
@@ -72,7 +71,11 @@ func (d *duplexWithHeartbeat) Write(p []byte) (int, error) {
 	binary.BigEndian.PutUint32(lengthBytes, length)
 	d.writeMutex.Lock()
 	defer d.writeMutex.Unlock()
-	err := util.WriteFull(d.inner, append([]byte{flagData}, lengthBytes...))
+	bytes := append([]byte{flagData}, lengthBytes...)
+	n, err := d.inner.Write(bytes)
+	if n != len(bytes) {
+		return n, io.ErrShortWrite
+	}
 	if err != nil {
 		return 0, err
 	}
