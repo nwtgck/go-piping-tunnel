@@ -79,41 +79,15 @@ var socksCmd = &cobra.Command{
 		socks5Conf := &socks5.Config{}
 		socks5Server, err := socks5.New(socks5Conf)
 
-		// If pmux is enabled
-		if socksPmux {
-			pmuxServer, err := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
-			if err != nil {
-				if err == pmux.NonPmuxMimeTypeError {
-					return errors.Errorf("--%s may be missing in client", pmuxFlagLongName)
-				}
-				if err == pmux.IncompatiblePmuxVersion {
-					return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
-				}
-				return err
-			}
-			for {
-				stream, err := pmuxServer.Accept()
-				if err != nil {
-					return err
-				}
-				// TODO: remove
-				fmt.Println("pmux accepted")
-				go func() {
-					err := socks5Server.ServeConn(util.NewDuplexConn(stream))
-					if err != nil {
-						// TODO:
-						fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
-					}
-				}()
-			}
-			return nil
+		// If yamux is enabled
+		if socksYamux {
+			fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
+			return socksHandleWithYamux(socks5Server, httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
 
-		fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
-		if err != nil {
-			return err
-		}
-		return socksHandleWithYamux(socks5Server, httpClient, headers, clientToServerUrl, serverToClientUrl)
+		// If pmux is enabled
+		fmt.Println("[INFO] Multiplexing with pmux")
+		return socksHandleWithPmux(socks5Server, httpClient, headers, clientToServerUrl, serverToClientUrl)
 	},
 }
 
@@ -161,5 +135,33 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 			return err
 		}
 		go socks5Server.ServeConn(yamuxStream)
+	}
+}
+
+func socksHandleWithPmux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+	pmuxServer, err := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
+	if err != nil {
+		if err == pmux.NonPmuxMimeTypeError {
+			return errors.Errorf("--%s may be missing in client", pmuxFlagLongName)
+		}
+		if err == pmux.IncompatiblePmuxVersion {
+			return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
+		}
+		return err
+	}
+	for {
+		stream, err := pmuxServer.Accept()
+		if err != nil {
+			return err
+		}
+		// TODO: remove
+		fmt.Println("pmux accepted")
+		go func() {
+			err := socks5Server.ServeConn(util.NewDuplexConn(stream))
+			if err != nil {
+				// TODO:
+				fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
+			}
+		}()
 	}
 }

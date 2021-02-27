@@ -84,50 +84,8 @@ var serverCmd = &cobra.Command{
 
 		// If pmux is enabled
 		if serverPmux {
-			pmuxServer, err := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
-			if err != nil {
-				if err == pmux.NonPmuxMimeTypeError {
-					return errors.Errorf("--%s may be missing in client", pmuxFlagLongName)
-				}
-				if err == pmux.IncompatiblePmuxVersion {
-					return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
-				}
-				return err
-			}
-			for {
-				stream, err := pmuxServer.Accept()
-				if err != nil {
-					return err
-				}
-				// TODO: remove
-				fmt.Println("pmux accepted")
-				conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
-				if err != nil {
-					return err
-				}
-				go func() {
-					// TODO: hard code
-					var buf = make([]byte, 16)
-					_, err := io.CopyBuffer(conn, stream, buf)
-					if err != nil {
-						// TODO:
-						fmt.Fprintf(os.Stderr, "error: %v\n", err)
-						return
-					}
-				}()
-
-				go func() {
-					// TODO: hard code
-					var buf = make([]byte, 16)
-					_, err := io.CopyBuffer(stream, conn, buf)
-					if err != nil {
-						// TODO:
-						fmt.Fprintf(os.Stderr, "error: %v\n", err)
-						return
-					}
-				}()
-			}
-			return nil
+			fmt.Println("[INFO] Multiplexing with pmux")
+			return serverHandleWithPmux(httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
 
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
@@ -233,6 +191,50 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyVal
 			close(fin)
 			conn.Close()
 			yamuxStream.Close()
+		}()
+	}
+}
+
+func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+	pmuxServer, err := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
+	if err != nil {
+		if err == pmux.NonPmuxMimeTypeError {
+			return errors.Errorf("--%s may be missing in client", pmuxFlagLongName)
+		}
+		if err == pmux.IncompatiblePmuxVersion {
+			return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
+		}
+		return err
+	}
+	for {
+		stream, err := pmuxServer.Accept()
+		if err != nil {
+			return err
+		}
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
+		if err != nil {
+			return err
+		}
+		go func() {
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			_, err := io.CopyBuffer(conn, stream, buf)
+			if err != nil {
+				// TODO:
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				return
+			}
+		}()
+
+		go func() {
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			_, err := io.CopyBuffer(stream, conn, buf)
+			if err != nil {
+				// TODO:
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				return
+			}
 		}()
 	}
 }

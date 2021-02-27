@@ -84,64 +84,10 @@ var clientCmd = &cobra.Command{
 			fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
 			return clientHandleWithYamux(ln, httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
-
 		// If pmux is enabled
 		if clientPmux {
-			pmuxClient, err := pmux.Client(httpClient, headers, clientToServerUrl, serverToClientUrl)
-			if err != nil {
-				if err == pmux.NonPmuxMimeTypeError {
-					return errors.Errorf("--%s may be missing in server", pmuxFlagLongName)
-				}
-				if err == pmux.IncompatiblePmuxVersion {
-					return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
-				}
-				return err
-			}
-			for {
-				conn, err := ln.Accept()
-				if err != nil {
-					break
-				}
-				stream, err := pmuxClient.Open()
-				if err != nil {
-					// TODO:
-					fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
-					continue
-				}
-				fin := make(chan struct{})
-				go func() {
-					// TODO: hard code
-					var buf = make([]byte, 16)
-					_, err := io.CopyBuffer(conn, stream, buf)
-					fin <- struct{}{}
-					if err != nil {
-						// TODO:
-						fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
-						return
-					}
-				}()
-
-				go func() {
-					// TODO: hard code
-					var buf = make([]byte, 16)
-					_, err := io.CopyBuffer(stream, conn, buf)
-					fin <- struct{}{}
-					if err != nil {
-						// TODO:
-						fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
-						return
-					}
-				}()
-
-				go func() {
-					<-fin
-					<-fin
-					conn.Close()
-					stream.Close()
-					close(fin)
-				}()
-			}
-			return err
+			fmt.Println("[INFO] Multiplexing with pmux")
+			return clientHandleWithPmux(ln, httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
 		conn, err := ln.Accept()
 		if err != nil {
@@ -262,4 +208,62 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 			yamuxStream.Close()
 		}()
 	}
+}
+
+func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+	pmuxClient, err := pmux.Client(httpClient, headers, clientToServerUrl, serverToClientUrl)
+	if err != nil {
+		if err == pmux.NonPmuxMimeTypeError {
+			return errors.Errorf("--%s may be missing in server", pmuxFlagLongName)
+		}
+		if err == pmux.IncompatiblePmuxVersion {
+			return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
+		}
+		return err
+	}
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			break
+		}
+		stream, err := pmuxClient.Open()
+		if err != nil {
+			// TODO:
+			fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
+			continue
+		}
+		fin := make(chan struct{})
+		go func() {
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			_, err := io.CopyBuffer(conn, stream, buf)
+			fin <- struct{}{}
+			if err != nil {
+				// TODO:
+				fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
+				return
+			}
+		}()
+
+		go func() {
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			_, err := io.CopyBuffer(stream, conn, buf)
+			fin <- struct{}{}
+			if err != nil {
+				// TODO:
+				fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
+				return
+			}
+		}()
+
+		go func() {
+			<-fin
+			<-fin
+			conn.Close()
+			stream.Close()
+			close(fin)
+		}()
+	}
+	return err
 }
