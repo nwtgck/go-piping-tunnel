@@ -3,6 +3,7 @@ package pmux
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -14,9 +15,11 @@ import (
 	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 type server struct {
@@ -40,6 +43,7 @@ type syncPacket struct {
 const pmuxVersion uint32 = 1
 const pmuxMimeType = "application/pmux"
 const syncSubPath = "sync"
+const getTimeout = 50 * time.Second
 
 var IncompatiblePmuxVersion = errors.Errorf("incompatible pmux version, expected %d", pmuxVersion)
 var NonPmuxMimeTypeError = errors.Errorf("invalid content-type, expected %s", pmuxMimeType)
@@ -118,7 +122,9 @@ func (s *server) getSubPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	getRes, err := piping_util.PipingGet(s.httpClient, s.headers, downloadUrl)
+	ctx, cancel := context.WithTimeout(context.Background(), getTimeout)
+	defer cancel()
+	getRes, err := piping_util.PipingGetWithContext(ctx, s.httpClient, s.headers, downloadUrl)
 	if err != nil {
 		return "", err
 	}
@@ -138,6 +144,7 @@ func (s *server) getSubPath() (string, error) {
 }
 
 func (s *server) Accept() (io.ReadWriteCloser, error) {
+	backoff := NewExponentialBackoff()
 	var subPath string
 	for {
 		var err error
@@ -145,11 +152,19 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 		if err == nil {
 			break
 		}
-		// Skip error logging if status error
-		if _, ok := err.(*getSubPathStatusError); ok {
+		// If timeout
+		if e, ok := err.(net.Error); ok && e.Timeout() {
+			// reset backoff
+			backoff.Reset()
+			// No backoff
 			continue
 		}
-		fmt.Printf("get sync error: %+v\n", errors.WithStack(err))
+		// Skip error logging if status error
+		if _, ok := err.(*getSubPathStatusError); !ok {
+			fmt.Printf("get sync error: %+v\n", errors.WithStack(err))
+		}
+		// backoff
+		time.Sleep(backoff.NextDuration())
 	}
 	uploadUrl, err := util.UrlJoin(s.baseUploadUrl, subPath)
 	if err != nil {
@@ -244,6 +259,7 @@ func (c *client) sendSubPath() (string, error) {
 }
 
 func (c *client) Open() (io.ReadWriteCloser, error) {
+	backoff := NewExponentialBackoff()
 	var subPath string
 	for {
 		var err error
@@ -252,6 +268,7 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 			break
 		}
 		fmt.Fprintln(os.Stderr, "send sync error", err)
+		time.Sleep(backoff.NextDuration())
 	}
 	uploadUrl, err := util.UrlJoin(c.baseUploadUrl, subPath)
 	if err != nil {

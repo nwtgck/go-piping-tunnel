@@ -1,12 +1,13 @@
 package piping_util
 
 import (
+	"context"
 	"io"
 	"net/http"
 )
 
-func PipingSend(httpClient *http.Client, headers []KeyValue, uploadUrl string, reader io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest("POST", uploadUrl, reader)
+func PipingSendWithContext(ctx context.Context, httpClient *http.Client, headers []KeyValue, uploadUrl string, reader io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", uploadUrl, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -17,8 +18,12 @@ func PipingSend(httpClient *http.Client, headers []KeyValue, uploadUrl string, r
 	return httpClient.Do(req)
 }
 
-func PipingGet(httpClient *http.Client, headers []KeyValue, downloadUrl string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", downloadUrl, nil)
+func PipingSend(httpClient *http.Client, headers []KeyValue, uploadUrl string, reader io.Reader) (*http.Response, error) {
+	return PipingSendWithContext(context.Background(), httpClient, headers, uploadUrl, reader)
+}
+
+func PipingGetWithContext(ctx context.Context, httpClient *http.Client, headers []KeyValue, downloadUrl string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", downloadUrl, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26,4 +31,8 @@ func PipingGet(httpClient *http.Client, headers []KeyValue, downloadUrl string) 
 		req.Header.Set(kv.Key, kv.Value)
 	}
 	return httpClient.Do(req)
+}
+
+func PipingGet(httpClient *http.Client, headers []KeyValue, downloadUrl string) (*http.Response, error) {
+	return PipingGetWithContext(context.Background(), httpClient, headers, downloadUrl)
 }
