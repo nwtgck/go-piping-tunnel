@@ -52,48 +52,11 @@ func headersWithPmux(headers []piping_util.KeyValue) []piping_util.KeyValue {
 	return append(headers, piping_util.KeyValue{Key: "Content-Type", Value: pmuxMimeType})
 }
 
-func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) (*server, error) {
-	server := &server{
-		httpClient:      httpClient,
-		headers:         headers,
-		baseUploadUrl:   baseUploadUrl,
-		baseDownloadUrl: baseDownloadUrl,
-	}
-	err := server.initialConnect()
-	return server, err
-}
-
-func (s *server) initialConnect() error {
-	var resultErr error
-	for {
-		getRes, err := piping_util.PipingGet(s.httpClient, s.headers, s.baseDownloadUrl)
-		if err != nil {
-			continue
-		}
-		if getRes.StatusCode != 200 {
-			continue
-		}
-		contentType := getRes.Header.Get("Content-Type")
-		if contentType != pmuxMimeType {
-			resultErr = NonPmuxMimeTypeError
-			break
-		}
-		resBytes, err := ioutil.ReadAll(getRes.Body)
-		if err != nil {
-			continue
-		}
-		version := binary.BigEndian.Uint32(resBytes[0:4])
-		if version != pmuxVersion {
-			resultErr = IncompatiblePmuxVersion
-			break
-		}
-		break
-	}
-
+func sendInitial(httpClient *http.Client, headers []piping_util.KeyValue, uploadUrl string) {
 	for {
 		versionBytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(versionBytes, pmuxVersion)
-		res, err := piping_util.PipingSend(s.httpClient, headersWithPmux(s.headers), s.baseUploadUrl, bytes.NewReader(versionBytes))
+		res, err := piping_util.PipingSend(httpClient, headersWithPmux(headers), uploadUrl, bytes.NewReader(versionBytes))
 		if err != nil {
 			continue
 		}
@@ -106,7 +69,48 @@ func (s *server) initialConnect() error {
 		}
 		break
 	}
-	return resultErr
+}
+
+func getInitial(httpClient *http.Client, headers []piping_util.KeyValue, downloadUrl string) error {
+	for {
+		getRes, err := piping_util.PipingGet(httpClient, headers, downloadUrl)
+		if err != nil {
+			continue
+		}
+		if getRes.StatusCode != 200 {
+			continue
+		}
+		contentType := getRes.Header.Get("Content-Type")
+		if contentType != pmuxMimeType {
+			return NonPmuxMimeTypeError
+		}
+		resBytes, err := ioutil.ReadAll(getRes.Body)
+		if err != nil {
+			continue
+		}
+		version := binary.BigEndian.Uint32(resBytes[0:4])
+		if version != pmuxVersion {
+			return IncompatiblePmuxVersion
+		}
+		return nil
+	}
+}
+
+func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) (*server, error) {
+	server := &server{
+		httpClient:      httpClient,
+		headers:         headers,
+		baseUploadUrl:   baseUploadUrl,
+		baseDownloadUrl: baseDownloadUrl,
+	}
+	err := server.initialConnect()
+	return server, err
+}
+
+func (s *server) initialConnect() error {
+	err := getInitial(s.httpClient, s.headers, s.baseDownloadUrl)
+	sendInitial(s.httpClient, s.headers, s.baseUploadUrl)
+	return err
 }
 
 type getSubPathStatusError struct {
@@ -193,47 +197,8 @@ func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadU
 }
 
 func (c *client) initialConnect() error {
-	for {
-		versionBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(versionBytes, pmuxVersion)
-		res, err := piping_util.PipingSend(c.httpClient, headersWithPmux(c.headers), c.baseUploadUrl, bytes.NewReader(versionBytes))
-		if err != nil {
-			continue
-		}
-		if res.StatusCode != 200 {
-			continue
-		}
-		_, err = io.Copy(ioutil.Discard, res.Body)
-		if err != nil {
-			continue
-		}
-		break
-	}
-
-	for {
-		getRes, err := piping_util.PipingGet(c.httpClient, c.headers, c.baseDownloadUrl)
-		if err != nil {
-			continue
-		}
-		if getRes.StatusCode != 200 {
-			continue
-		}
-		contentType := getRes.Header.Get("Content-Type")
-		if contentType != pmuxMimeType {
-			return NonPmuxMimeTypeError
-		}
-		resBytes, err := ioutil.ReadAll(getRes.Body)
-		if err != nil {
-			continue
-		}
-		version := binary.BigEndian.Uint32(resBytes[0:4])
-		if version != pmuxVersion {
-			return IncompatiblePmuxVersion
-		}
-		break
-	}
-
-	return nil
+	sendInitial(c.httpClient, c.headers, c.baseUploadUrl)
+	return getInitial(c.httpClient, c.headers, c.baseDownloadUrl)
 }
 
 func (c *client) sendSubPath() (string, error) {
