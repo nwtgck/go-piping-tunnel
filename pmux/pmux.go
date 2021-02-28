@@ -53,14 +53,17 @@ func headersWithPmux(headers []piping_util.KeyValue) []piping_util.KeyValue {
 }
 
 func sendInitial(httpClient *http.Client, headers []piping_util.KeyValue, uploadUrl string) {
+	backoff := NewExponentialBackoff()
 	for {
 		versionBytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(versionBytes, pmuxVersion)
 		res, err := piping_util.PipingSend(httpClient, headersWithPmux(headers), uploadUrl, bytes.NewReader(versionBytes))
 		if err != nil {
+			time.Sleep(backoff.NextDuration())
 			continue
 		}
 		if res.StatusCode != 200 {
+			time.Sleep(backoff.NextDuration())
 			continue
 		}
 		_, err = io.Copy(ioutil.Discard, res.Body)
@@ -72,12 +75,23 @@ func sendInitial(httpClient *http.Client, headers []piping_util.KeyValue, upload
 }
 
 func getInitial(httpClient *http.Client, headers []piping_util.KeyValue, downloadUrl string) error {
+	backoff := NewExponentialBackoff()
 	for {
-		getRes, err := piping_util.PipingGet(httpClient, headers, downloadUrl)
+		ctx, cancel := context.WithTimeout(context.Background(), getTimeout)
+		defer cancel()
+		getRes, err := piping_util.PipingGetWithContext(ctx, httpClient, headers, downloadUrl)
 		if err != nil {
+			// If timeout
+			if e, ok := err.(net.Error); ok && e.Timeout() {
+				backoff.Reset()
+				continue
+			}
+			// backoff
+			time.Sleep(backoff.NextDuration())
 			continue
 		}
 		if getRes.StatusCode != 200 {
+			time.Sleep(backoff.NextDuration())
 			continue
 		}
 		contentType := getRes.Header.Get("Content-Type")
