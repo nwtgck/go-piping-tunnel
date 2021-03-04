@@ -4,6 +4,7 @@ package pmux
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
@@ -74,16 +75,17 @@ func (s *server) sendSubPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// TODO: send pmux version too
 	subPath := strings.Replace(uuid.New().String(), "-", "", 4)
 	sync := syncJson{SubPath: subPath}
 	jsonBytes, err := json.Marshal(sync)
 	if err != nil {
 		return "", err
 	}
+	versionBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(versionBytes, pmuxVersion)
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
-	postRes, err := piping_util.PipingSendWithContext(ctx, s.httpClient, headersWithPmux(s.headers), uploadUrl, bytes.NewReader(jsonBytes))
+	postRes, err := piping_util.PipingSendWithContext(ctx, s.httpClient, headersWithPmux(s.headers), uploadUrl, bytes.NewReader(append(versionBytes, jsonBytes...)))
 	if err != nil {
 		return "", err
 	}
@@ -157,8 +159,13 @@ func (c *client) getSubPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	versionBytes := resBytes[:4]
+	serverVersion := binary.BigEndian.Uint32(versionBytes)
+	if serverVersion != pmuxVersion {
+		return "", IncompatiblePmuxVersion
+	}
 	var sync syncJson
-	err = json.Unmarshal(resBytes, &sync)
+	err = json.Unmarshal(resBytes[4:], &sync)
 	if err != nil {
 		return "", err
 	}
@@ -179,7 +186,8 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 			backoff.Reset()
 			continue
 		}
-		if err == NonPmuxMimeTypeError {
+		// If fatal error
+		if err == NonPmuxMimeTypeError || err == IncompatiblePmuxVersion {
 			return nil, err
 		}
 		fmt.Fprintln(os.Stderr, "get sync error", err)
