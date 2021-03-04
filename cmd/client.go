@@ -214,16 +214,7 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 }
 
 func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	pmuxClient, err := pmux.Client(httpClient, headers, clientToServerUrl, serverToClientUrl)
-	if err != nil {
-		if err == pmux.NonPmuxMimeTypeError {
-			return errors.Errorf("--%s may be missing in server", pmuxFlagLongName)
-		}
-		if err == pmux.IncompatiblePmuxVersion {
-			return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
-		}
-		return err
-	}
+	pmuxClient := pmux.Client(httpClient, headers, clientToServerUrl, serverToClientUrl)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -231,6 +222,12 @@ func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []pi
 		}
 		stream, err := pmuxClient.Open()
 		if err != nil {
+			if err == pmux.NonPmuxMimeTypeError {
+				return errors.Errorf("--%s may be missing in server", pmuxFlagLongName)
+			}
+			if err == pmux.IncompatiblePmuxVersion {
+				return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
+			}
 			// TODO:
 			fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
 			continue
@@ -268,5 +265,5 @@ func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []pi
 			close(fin)
 		}()
 	}
-	return err
+	return nil
 }

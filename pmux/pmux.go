@@ -51,14 +51,14 @@ func headersWithPmux(headers []piping_util.KeyValue) []piping_util.KeyValue {
 	return append(headers, piping_util.KeyValue{Key: "Content-Type", Value: pmuxMimeType})
 }
 
-func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) (*server, error) {
+func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) *server {
 	server := &server{
 		httpClient:      httpClient,
 		headers:         headers,
 		baseUploadUrl:   baseUploadUrl,
 		baseDownloadUrl: baseDownloadUrl,
 	}
-	return server, nil
+	return server
 }
 
 type getSubPathStatusError struct {
@@ -128,14 +128,14 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	return heartbeat_duplex.Duplex(duplex), err
 }
 
-func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) (*client, error) {
+func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) *client {
 	client := &client{
 		httpClient:      httpClient,
 		headers:         headers,
 		baseUploadUrl:   baseUploadUrl,
 		baseDownloadUrl: baseDownloadUrl,
 	}
-	return client, nil
+	return client
 }
 
 func (c *client) getSubPath() (string, error) {

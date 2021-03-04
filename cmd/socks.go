@@ -7,7 +7,6 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
-	"github.com/nwtgck/go-piping-tunnel/version"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"net/http"
@@ -142,16 +141,7 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 }
 
 func socksHandleWithPmux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	pmuxServer, err := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
-	if err != nil {
-		if err == pmux.NonPmuxMimeTypeError {
-			return errors.Errorf("--%s may be missing in client", pmuxFlagLongName)
-		}
-		if err == pmux.IncompatiblePmuxVersion {
-			return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
-		}
-		return err
-	}
+	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
 	for {
 		stream, err := pmuxServer.Accept()
 		if err != nil {
