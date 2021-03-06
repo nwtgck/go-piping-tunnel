@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/nwtgck/go-piping-tunnel/backoff"
 	"github.com/nwtgck/go-piping-tunnel/early_piping_duplex"
 	"github.com/nwtgck/go-piping-tunnel/heartbeat_duplex"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
@@ -74,7 +75,7 @@ func (e *getSubPathStatusError) Error() string {
 }
 
 func (s *server) sendVersionLoop() {
-	backoff := NewExponentialBackoff()
+	b := backoff.NewExponentialBackoff()
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 		defer cancel()
@@ -82,19 +83,19 @@ func (s *server) sendVersionLoop() {
 		// If timeout
 		if e, ok := err.(net.Error); ok && e.Timeout() {
 			// reset backoff
-			backoff.Reset()
+			b.Reset()
 			// No backoff
 			continue
 		}
 		if err != nil {
 			// backoff
-			time.Sleep(backoff.NextDuration())
+			time.Sleep(b.NextDuration())
 			continue
 		}
 		_, err = io.Copy(ioutil.Discard, postRes.Body)
 		if err != nil {
 			// backoff
-			time.Sleep(backoff.NextDuration())
+			time.Sleep(b.NextDuration())
 			continue
 		}
 	}
@@ -123,7 +124,7 @@ func (s *server) getSubPath() (string, error) {
 }
 
 func (s *server) Accept() (io.ReadWriteCloser, error) {
-	backoff := NewExponentialBackoff()
+	b := backoff.NewExponentialBackoff()
 	var subPath string
 	for {
 		var err error
@@ -134,12 +135,12 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 		// If timeout
 		if e, ok := err.(net.Error); ok && e.Timeout() {
 			// reset backoff
-			backoff.Reset()
+			b.Reset()
 			// No backoff
 			continue
 		}
 		// backoff
-		time.Sleep(backoff.NextDuration())
+		time.Sleep(b.NextDuration())
 	}
 	uploadUrl, err := util.UrlJoin(s.baseUploadUrl, subPath)
 	if err != nil {
@@ -167,7 +168,7 @@ func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadU
 }
 
 func (c *client) checkServerVersion() error {
-	backoff := NewExponentialBackoff()
+	b := backoff.NewExponentialBackoff()
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 		defer cancel()
@@ -175,13 +176,13 @@ func (c *client) checkServerVersion() error {
 		// If timeout
 		if e, ok := err.(net.Error); ok && e.Timeout() {
 			// reset backoff
-			backoff.Reset()
+			b.Reset()
 			// No backoff
 			continue
 		}
 		if err != nil {
 			// backoff
-			time.Sleep(backoff.NextDuration())
+			time.Sleep(b.NextDuration())
 			continue
 		}
 		if postRes.Header.Get("Content-Type") != pmuxMimeType {
@@ -191,7 +192,7 @@ func (c *client) checkServerVersion() error {
 		_, err = io.ReadFull(postRes.Body, versionBytes)
 		if err != nil {
 			// backoff
-			time.Sleep(backoff.NextDuration())
+			time.Sleep(b.NextDuration())
 			continue
 		}
 		serverVersion := binary.BigEndian.Uint32(versionBytes)
@@ -224,7 +225,7 @@ func (c *client) sendSubPath() (string, error) {
 }
 
 func (c *client) Open() (io.ReadWriteCloser, error) {
-	backoff := NewExponentialBackoff()
+	b := backoff.NewExponentialBackoff()
 	var subPath string
 	for {
 		var err error
@@ -234,11 +235,11 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 		}
 		// If timeout
 		if e, ok := err.(net.Error); ok && e.Timeout() {
-			backoff.Reset()
+			b.Reset()
 			continue
 		}
 		fmt.Fprintln(os.Stderr, "get sync error", err)
-		time.Sleep(backoff.NextDuration())
+		time.Sleep(b.NextDuration())
 	}
 	uploadUrl, err := util.UrlJoin(c.baseUploadUrl, subPath)
 	if err != nil {
