@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/nwtgck/go-piping-tunnel/early_piping_duplex"
 	"github.com/nwtgck/go-piping-tunnel/heartbeat_duplex"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
@@ -18,7 +17,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -205,7 +203,10 @@ func (c *client) checkServerVersion() error {
 }
 
 func (c *client) sendSubPath() (string, error) {
-	subPath := strings.Replace(uuid.New().String(), "-", "", 4)
+	subPath, err := util.RandomHexString()
+	if err != nil {
+		return "", err
+	}
 	sync := syncJson{SubPath: subPath}
 	jsonBytes, err := json.Marshal(sync)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"github.com/mattn/go-tty"
 	"io"
@@ -145,4 +146,16 @@ func GenerateRandomBytes(len int) ([]byte, error) {
 		return nil, err
 	}
 	return bytes, nil
+}
+
+func RandomHexString() (string, error) {
+	// UUID: 32 hex digits + 4 dashes: https://tools.ietf.org/html/rfc4122#section-3
+	var buf [16]byte
+	_, err := io.ReadFull(rand.Reader, buf[:])
+	if err != nil {
+		return "", err
+	}
+	var hexBytes [32]byte
+	hex.Encode(hexBytes[:], buf[:])
+	return string(hexBytes[:]), nil
 }
