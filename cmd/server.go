@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/hashicorp/yamux"
+	"github.com/nwtgck/go-piping-tunnel/backoff"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 var serverHostPort int
@@ -196,6 +198,19 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyVal
 	}
 }
 
+func dialLoop(network string, address string) net.Conn {
+	b := backoff.NewExponentialBackoff()
+	for {
+		conn, err := net.Dial(network, address)
+		if err != nil {
+			// backoff
+			time.Sleep(b.NextDuration())
+			continue
+		}
+		return conn
+	}
+}
+
 func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
 	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
 	for {
@@ -203,10 +218,7 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 		if err != nil {
 			return err
 		}
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
-		if err != nil {
-			return err
-		}
+		conn := dialLoop("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
 		go func() {
 			// TODO: hard code
 			var buf = make([]byte, 16)
