@@ -44,13 +44,12 @@ const pmuxVersion uint32 = 1
 const pmuxMimeType = "application/pmux"
 const httpTimeout = 50 * time.Second
 
-var pmuxVersionBytes []byte
+var pmuxVersionBytes [4]byte
 var IncompatiblePmuxVersion = errors.Errorf("incompatible pmux version, expected %d", pmuxVersion)
 var NonPmuxMimeTypeError = errors.Errorf("invalid content-type, expected %s", pmuxMimeType)
 
 func init() {
-	pmuxVersionBytes = make([]byte, 4)
-	binary.BigEndian.PutUint32(pmuxVersionBytes, pmuxVersion)
+	binary.BigEndian.PutUint32(pmuxVersionBytes[:], pmuxVersion)
 }
 
 func headersWithPmux(headers []piping_util.KeyValue) []piping_util.KeyValue {
@@ -81,7 +80,7 @@ func (s *server) sendVersionLoop() {
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 		defer cancel()
-		postRes, err := piping_util.PipingSendWithContext(ctx, s.httpClient, headersWithPmux(s.headers), s.baseUploadUrl, bytes.NewReader(pmuxVersionBytes))
+		postRes, err := piping_util.PipingSendWithContext(ctx, s.httpClient, headersWithPmux(s.headers), s.baseUploadUrl, bytes.NewReader(pmuxVersionBytes[:]))
 		// If timeout
 		if e, ok := err.(net.Error); ok && e.Timeout() {
 			// reset backoff
