@@ -226,6 +226,7 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 			if err != nil {
 				// TODO:
 				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				conn.Close()
 				return
 			}
 		}()
@@ -237,6 +238,7 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 			if err != nil {
 				// TODO:
 				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				conn.Close()
 				return
 			}
 		}()
