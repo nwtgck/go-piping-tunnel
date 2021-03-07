@@ -147,8 +147,6 @@ func socksHandleWithPmux(socks5Server *socks5.Server, httpClient *http.Client, h
 		if err != nil {
 			return err
 		}
-		// TODO: remove
-		fmt.Println("pmux accepted")
 		go func() {
 			err := socks5Server.ServeConn(util.NewDuplexConn(stream))
 			if err != nil {
