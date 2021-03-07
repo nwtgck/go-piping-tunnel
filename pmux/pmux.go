@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nwtgck/go-piping-tunnel/backoff"
+	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/early_piping_duplex"
 	"github.com/nwtgck/go-piping-tunnel/heartbeat_duplex"
+	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
@@ -25,6 +27,9 @@ type server struct {
 	headers         []piping_util.KeyValue
 	baseUploadUrl   string
 	baseDownloadUrl string
+	encrypts        bool
+	passphrase      string
+	cipherType      string
 }
 
 type client struct {
@@ -32,6 +37,9 @@ type client struct {
 	headers         []piping_util.KeyValue
 	baseUploadUrl   string
 	baseDownloadUrl string
+	encrypts        bool
+	passphrase      string
+	cipherType      string
 }
 
 type syncJson struct {
@@ -54,12 +62,15 @@ func headersWithPmux(headers []piping_util.KeyValue) []piping_util.KeyValue {
 	return append(headers, piping_util.KeyValue{Key: "Content-Type", Value: pmuxMimeType})
 }
 
-func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) *server {
+func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string, encrypts bool, passphrase string, cipherType string) *server {
 	server := &server{
 		httpClient:      httpClient,
 		headers:         headers,
 		baseUploadUrl:   baseUploadUrl,
 		baseDownloadUrl: baseDownloadUrl,
+		encrypts:        encrypts,
+		passphrase:      passphrase,
+		cipherType:      cipherType,
 	}
 	go server.sendVersionLoop()
 	return server
@@ -149,19 +160,35 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	duplex, err := early_piping_duplex.DuplexConnect(s.httpClient, s.headers, uploadUrl, downloadUrl)
+	var duplex io.ReadWriteCloser
+	duplex, err = early_piping_duplex.DuplexConnect(s.httpClient, s.headers, uploadUrl, downloadUrl)
 	if err != nil {
 		return nil, err
 	}
-	return heartbeat_duplex.Duplex(duplex), err
+	duplex = heartbeat_duplex.Duplex(duplex)
+	if s.encrypts {
+		switch s.cipherType {
+		case piping_util.CipherTypeAesCtr:
+			// Encrypt with AES-CTR
+			duplex, err = crypto_duplex.EncryptDuplexWithAesCtr(duplex, duplex, []byte(s.passphrase))
+		case piping_util.CipherTypeOpenpgp:
+			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(s.passphrase))
+		default:
+			return nil, errors.Errorf("unexpected cipher type: %s", s.cipherType)
+		}
+	}
+	return duplex, err
 }
 
-func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string) (*client, error) {
+func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string, encrypts bool, passphrase string, cipherType string) (*client, error) {
 	client := &client{
 		httpClient:      httpClient,
 		headers:         headers,
 		baseUploadUrl:   baseUploadUrl,
 		baseDownloadUrl: baseDownloadUrl,
+		encrypts:        encrypts,
+		passphrase:      passphrase,
+		cipherType:      cipherType,
 	}
 	return client, client.checkServerVersion()
 }
@@ -248,9 +275,22 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	duplex, err := early_piping_duplex.DuplexConnect(c.httpClient, c.headers, uploadUrl, downloadUrl)
+	var duplex io.ReadWriteCloser
+	duplex, err = early_piping_duplex.DuplexConnect(c.httpClient, c.headers, uploadUrl, downloadUrl)
 	if err != nil {
 		return nil, err
 	}
-	return heartbeat_duplex.Duplex(duplex), err
+	duplex = heartbeat_duplex.Duplex(duplex)
+	if c.encrypts {
+		switch c.cipherType {
+		case piping_util.CipherTypeAesCtr:
+			// Encrypt with AES-CTR
+			duplex, err = crypto_duplex.EncryptDuplexWithAesCtr(duplex, duplex, []byte(c.passphrase))
+		case piping_util.CipherTypeOpenpgp:
+			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(c.passphrase))
+		default:
+			return nil, errors.Errorf("unexpected cipher type: %s", c.cipherType)
+		}
+	}
+	return duplex, err
 }

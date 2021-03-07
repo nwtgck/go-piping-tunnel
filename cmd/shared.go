@@ -14,11 +14,7 @@ import (
 	"time"
 )
 
-const (
-	cipherTypeOpenpgp string = "openpgp"
-	cipherTypeAesCtr         = "aes-ctr"
-)
-const defaultCipherType = cipherTypeAesCtr
+const defaultCipherType = piping_util.CipherTypeAesCtr
 
 const (
 	yamuxFlagLongName                          = "yamux"
@@ -31,9 +27,9 @@ const (
 
 func validateClientCipher(str string) error {
 	switch str {
-	case cipherTypeAesCtr:
+	case piping_util.CipherTypeAesCtr:
 		return nil
-	case cipherTypeOpenpgp:
+	case piping_util.CipherTypeOpenpgp:
 		return nil
 	default:
 		return errors.Errorf("invalid cipher type: %s", str)
@@ -89,11 +85,11 @@ func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers 
 	if encrypts {
 		var cipherName string
 		switch cipherType {
-		case cipherTypeAesCtr:
+		case piping_util.CipherTypeAesCtr:
 			// Encrypt with AES-CTR
 			duplex, err = crypto_duplex.EncryptDuplexWithAesCtr(duplex, duplex, []byte(passphrase))
 			cipherName = "AES-CTR"
-		case cipherTypeOpenpgp:
+		case piping_util.CipherTypeOpenpgp:
 			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(passphrase))
 			cipherName = "OpenPGP"
 		default:

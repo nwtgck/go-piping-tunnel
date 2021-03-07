@@ -26,7 +26,7 @@ func init() {
 	socksCmd.Flags().BoolVarP(&socksPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
 	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
-	socksCmd.Flags().StringVarP(&socksCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
+	socksCmd.Flags().StringVarP(&socksCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpenpgp))
 }
 
 var socksCmd = &cobra.Command{
@@ -141,7 +141,7 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 }
 
 func socksHandleWithPmux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
+	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
 	for {
 		stream, err := pmuxServer.Accept()
 		if err != nil {

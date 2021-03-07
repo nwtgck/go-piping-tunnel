@@ -33,7 +33,7 @@ func init() {
 	serverCmd.Flags().BoolVarP(&serverPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
 	serverCmd.Flags().BoolVarP(&serverSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	serverCmd.Flags().StringVarP(&serverSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
-	serverCmd.Flags().StringVarP(&serverCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
+	serverCmd.Flags().StringVarP(&serverCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpenpgp))
 }
 
 var serverCmd = &cobra.Command{
@@ -212,7 +212,7 @@ func dialLoop(network string, address string) net.Conn {
 }
 
 func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl)
+	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
 	for {
 		stream, err := pmuxServer.Accept()
 		if err != nil {

@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+const (
+	CipherTypeOpenpgp string = "openpgp"
+	CipherTypeAesCtr         = "aes-ctr"
+)
+
 type KeyValue struct {
 	Key   string
 	Value string
