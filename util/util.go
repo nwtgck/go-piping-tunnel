@@ -159,3 +159,8 @@ func RandomHexString() (string, error) {
 	hex.Encode(hexBytes[:], buf[:])
 	return string(hexBytes[:]), nil
 }
+
+func IsTimeoutErr(err error) bool {
+	e, ok := err.(net.Error)
+	return ok && e.Timeout()
+}

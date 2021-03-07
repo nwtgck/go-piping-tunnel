@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -81,7 +80,7 @@ func (s *server) sendVersionLoop() {
 		defer cancel()
 		postRes, err := piping_util.PipingSendWithContext(ctx, s.httpClient, headersWithPmux(s.headers), s.baseUploadUrl, bytes.NewReader(pmuxVersionBytes[:]))
 		// If timeout
-		if e, ok := err.(net.Error); ok && e.Timeout() {
+		if util.IsTimeoutErr(err) {
 			// reset backoff
 			b.Reset()
 			// No backoff
@@ -133,7 +132,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 			break
 		}
 		// If timeout
-		if e, ok := err.(net.Error); ok && e.Timeout() {
+		if util.IsTimeoutErr(err) {
 			// reset backoff
 			b.Reset()
 			// No backoff
@@ -174,7 +173,7 @@ func (c *client) checkServerVersion() error {
 		defer cancel()
 		postRes, err := piping_util.PipingGetWithContext(ctx, c.httpClient, c.headers, c.baseDownloadUrl)
 		// If timeout
-		if e, ok := err.(net.Error); ok && e.Timeout() {
+		if util.IsTimeoutErr(err) {
 			// reset backoff
 			b.Reset()
 			// No backoff
@@ -234,7 +233,7 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 			break
 		}
 		// If timeout
-		if e, ok := err.(net.Error); ok && e.Timeout() {
+		if util.IsTimeoutErr(err) {
 			b.Reset()
 			continue
 		}
