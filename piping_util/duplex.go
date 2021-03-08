@@ -12,16 +12,16 @@ type pipingDuplex struct {
 	downloadReader     io.ReadCloser
 }
 
-func DuplexConnect(httpClient *http.Client, headers []KeyValue, uploadUrl, downloadUrl string) (*pipingDuplex, error) {
+func DuplexConnect(httpClient *http.Client, postHeaders []KeyValue, getHeaders []KeyValue, uploadUrl, downloadUrl string) (*pipingDuplex, error) {
 	uploadPr, uploadPw := io.Pipe()
-	_, err := PipingSend(httpClient, headers, uploadUrl, uploadPr)
+	_, err := PipingSend(httpClient, postHeaders, uploadUrl, uploadPr)
 	if err != nil {
 		return nil, err
 	}
 
 	downloadReaderChan := make(chan interface{})
 	go func() {
-		res, err := PipingGet(httpClient, headers, downloadUrl)
+		res, err := PipingGet(httpClient, getHeaders, downloadUrl)
 		if err != nil {
 			downloadReaderChan <- err
 			return

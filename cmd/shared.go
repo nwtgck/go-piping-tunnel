@@ -75,9 +75,9 @@ func makeUserInputPassphraseIfEmpty(passphrase *string) (err error) {
 	return nil
 }
 
-func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers []piping_util.KeyValue, uploadUrl, downloadUrl string, encrypts bool, passphrase string, cipherType string) (io.ReadWriteCloser, error) {
+func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, postHeaders []piping_util.KeyValue, getHeaders []piping_util.KeyValue, uploadUrl, downloadUrl string, encrypts bool, passphrase string, cipherType string) (io.ReadWriteCloser, error) {
 	var duplex io.ReadWriteCloser
-	duplex, err := piping_util.DuplexConnect(httpClient, headers, uploadUrl, downloadUrl)
+	duplex, err := piping_util.DuplexConnect(httpClient, postHeaders, getHeaders, uploadUrl, downloadUrl)
 	if err != nil {
 		return nil, err
 	}

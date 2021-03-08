@@ -123,7 +123,7 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 }
 
 func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
+	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, headers, serverToClientUrl, clientToServerUrl, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
 	if err != nil {
 		return err
 	}
