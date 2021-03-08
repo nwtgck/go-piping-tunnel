@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"github.com/mattn/go-tty"
 	"io"
@@ -19,12 +20,12 @@ import (
 )
 
 // (base: https://stackoverflow.com/a/34668130/2885946)
-func UrlJoin(s string, p string) (string, error) {
+func UrlJoin(s string, p ...string) (string, error) {
 	u, err := url.Parse(s)
 	if err != nil {
 		return "", err
 	}
-	u.Path = path.Join(u.Path, p)
+	u.Path = path.Join(append([]string{u.Path}, p...)...)
 	return u.String(), nil
 }
 
@@ -145,4 +146,21 @@ func GenerateRandomBytes(len int) ([]byte, error) {
 		return nil, err
 	}
 	return bytes, nil
+}
+
+func RandomHexString() (string, error) {
+	// UUID: 32 hex digits + 4 dashes: https://tools.ietf.org/html/rfc4122#section-3
+	var buf [16]byte
+	_, err := io.ReadFull(rand.Reader, buf[:])
+	if err != nil {
+		return "", err
+	}
+	var hexBytes [32]byte
+	hex.Encode(hexBytes[:], buf[:])
+	return string(hexBytes[:]), nil
+}
+
+func IsTimeoutErr(err error) bool {
+	e, ok := err.(net.Error)
+	return ok && e.Timeout()
 }

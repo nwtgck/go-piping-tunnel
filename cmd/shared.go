@@ -5,7 +5,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
-	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
+	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
 	"io"
@@ -14,25 +14,22 @@ import (
 	"time"
 )
 
-const (
-	cipherTypeOpenpgp string = "openpgp"
-	cipherTypeAesCtr         = "aes-ctr"
-)
-const defaultCipherType = cipherTypeAesCtr
+const defaultCipherType = piping_util.CipherTypeAesCtr
 
 const (
-	yamuxFlagLongName                          string = "yamux"
-	symmetricallyEncryptsFlagLongName          string = "symmetric"
-	symmetricallyEncryptsFlagShortName         string = "c"
-	symmetricallyEncryptPassphraseFlagLongName string = "passphrase"
-	cipherTypeFlagLongName                            = "cipher-type"
+	yamuxFlagLongName                          = "yamux"
+	pmuxFlagLongName                           = "pmux"
+	symmetricallyEncryptsFlagLongName          = "symmetric"
+	symmetricallyEncryptsFlagShortName         = "c"
+	symmetricallyEncryptPassphraseFlagLongName = "passphrase"
+	cipherTypeFlagLongName                     = "cipher-type"
 )
 
 func validateClientCipher(str string) error {
 	switch str {
-	case cipherTypeAesCtr:
+	case piping_util.CipherTypeAesCtr:
 		return nil
-	case cipherTypeOpenpgp:
+	case piping_util.CipherTypeOpenpgp:
 		return nil
 	default:
 		return errors.Errorf("invalid cipher type: %s", str)
@@ -78,9 +75,9 @@ func makeUserInputPassphraseIfEmpty(passphrase *string) (err error) {
 	return nil
 }
 
-func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, uploadUrl, downloadUrl string, encrypts bool, passphrase string, cipherType string) (io.ReadWriteCloser, error) {
+func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers []piping_util.KeyValue, uploadUrl, downloadUrl string, encrypts bool, passphrase string, cipherType string) (io.ReadWriteCloser, error) {
 	var duplex io.ReadWriteCloser
-	duplex, err := piping_tunnel_util.DuplexConnect(httpClient, headers, uploadUrl, downloadUrl)
+	duplex, err := piping_util.DuplexConnect(httpClient, headers, uploadUrl, downloadUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -88,11 +85,11 @@ func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers 
 	if encrypts {
 		var cipherName string
 		switch cipherType {
-		case cipherTypeAesCtr:
+		case piping_util.CipherTypeAesCtr:
 			// Encrypt with AES-CTR
 			duplex, err = crypto_duplex.EncryptDuplexWithAesCtr(duplex, duplex, []byte(passphrase))
 			cipherName = "AES-CTR"
-		case cipherTypeOpenpgp:
+		case piping_util.CipherTypeOpenpgp:
 			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(passphrase))
 			cipherName = "OpenPGP"
 		default:
