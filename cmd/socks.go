@@ -9,6 +9,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -123,7 +124,12 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 }
 
 func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, headers, serverToClientUrl, clientToServerUrl, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
+	var duplex io.ReadWriteCloser
+	duplex, err := piping_util.DuplexConnect(httpClient, headersWithYamux(headers), headers, serverToClientUrl, clientToServerUrl)
+	if err != nil {
+		return err
+	}
+	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
 	if err != nil {
 		return err
 	}

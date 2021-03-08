@@ -98,7 +98,12 @@ var clientCmd = &cobra.Command{
 		ln.Close()
 		// If encryption is enabled
 		if clientSymmetricallyEncrypts {
-			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, headers, clientToServerUrl, serverToClientUrl, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
+			var duplex io.ReadWriteCloser
+			duplex, err := piping_util.DuplexConnect(httpClient, headers, headers, clientToServerUrl, serverToClientUrl)
+			if err != nil {
+				return err
+			}
+			duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
 			if err != nil {
 				return err
 			}
@@ -172,7 +177,12 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 }
 
 func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, headers, clientToServerUrl, serverToClientUrl, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
+	var duplex io.ReadWriteCloser
+	duplex, err := piping_util.DuplexConnect(httpClient, headersWithYamux(headers), headers, clientToServerUrl, serverToClientUrl)
+	if err != nil {
+		return err
+	}
+	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
 	if err != nil {
 		return err
 	}
