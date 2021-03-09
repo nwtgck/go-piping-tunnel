@@ -58,7 +58,7 @@ jobs:
     - name: Wait for running SSH server
       run: sleep 3
     - name: Run Piping Server
-      run: docker run -d -p 8080:8080 nwtgck/piping-server:v1.1.3
+      run: docker run -d -p 8080:8080 nwtgck/piping-server:v1.2.0
     - name: Wait for running Piping server
       run: sleep 3
     - uses: actions/checkout@v2
