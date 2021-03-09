@@ -97,7 +97,7 @@ var serverCmd = &cobra.Command{
 		// If encryption is enabled
 		if serverSymmetricallyEncrypts {
 			var duplex io.ReadWriteCloser
-			duplex, err := piping_util.DuplexConnect(httpClient, headers, headers, serverToClientUrl, clientToServerUrl)
+			duplex, err := piping_util.DuplexConnect(httpClient, headers, serverToClientUrl, clientToServerUrl)
 			if err != nil {
 				return err
 			}
