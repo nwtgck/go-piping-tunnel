@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+var serverTargetHost string
 var serverHostPort int
 var serverClientToServerBufSize uint
 var serverYamux bool
@@ -27,6 +28,7 @@ var serverCipherType string
 
 func init() {
 	RootCmd.AddCommand(serverCmd)
+	serverCmd.Flags().StringVarP(&serverTargetHost, "host", "", "localhost", "Target host")
 	serverCmd.Flags().IntVarP(&serverHostPort, "port", "p", 0, "TCP port of server host")
 	serverCmd.MarkFlagRequired("port")
 	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "c-to-s-buf-size", "", 16, "Buffer size of client-to-server in bytes")
@@ -89,7 +91,7 @@ var serverCmd = &cobra.Command{
 			return serverHandleWithPmux(httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
 
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", serverTargetHost, serverHostPort))
 		if err != nil {
 			return err
 		}
@@ -198,7 +200,7 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyVal
 		if err != nil {
 			return err
 		}
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", serverTargetHost, serverHostPort))
 		if err != nil {
 			return err
 		}
@@ -245,7 +247,7 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 		if err != nil {
 			return err
 		}
-		conn := dialLoop("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
+		conn := dialLoop("tcp", fmt.Sprintf("%s:%d", serverTargetHost, serverHostPort))
 		go func() {
 			// TODO: hard code
 			var buf = make([]byte, 16)
