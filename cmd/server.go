@@ -7,6 +7,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
@@ -169,7 +170,16 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyVal
 			return piping_util.PipingSend(httpClient, headersWithYamux(headers), serverToClientUrl, body)
 		},
 		func() (*http.Response, error) {
-			return piping_util.PipingGet(httpClient, headers, clientToServerUrl)
+			res, err := piping_util.PipingGet(httpClient, headers, clientToServerUrl)
+			if err != nil {
+				return nil, err
+			}
+			contentType := res.Header.Get("Content-Type")
+			// NOTE: application/octet-stream is for compatibility
+			if contentType != yamuxMimeType && contentType != "application/octet-stream" {
+				return nil, errors.Errorf("invalid content-type: %s", contentType)
+			}
+			return res, nil
 		},
 	)
 	if err != nil {

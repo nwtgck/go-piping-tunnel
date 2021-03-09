@@ -183,7 +183,16 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 			return piping_util.PipingSend(httpClient, headersWithYamux(headers), clientToServerUrl, body)
 		},
 		func() (*http.Response, error) {
-			return piping_util.PipingGet(httpClient, headers, serverToClientUrl)
+			res, err := piping_util.PipingGet(httpClient, headers, serverToClientUrl)
+			if err != nil {
+				return nil, err
+			}
+			contentType := res.Header.Get("Content-Type")
+			// NOTE: application/octet-stream is for compatibility
+			if contentType != yamuxMimeType && contentType != "application/octet-stream" {
+				return nil, errors.Errorf("invalid content-type: %s", contentType)
+			}
+			return res, nil
 		},
 	)
 	if err != nil {

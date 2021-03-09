@@ -130,7 +130,16 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 			return piping_util.PipingSend(httpClient, headersWithYamux(headers), serverToClientUrl, body)
 		},
 		func() (*http.Response, error) {
-			return piping_util.PipingGet(httpClient, headers, clientToServerUrl)
+			res, err := piping_util.PipingGet(httpClient, headers, clientToServerUrl)
+			if err != nil {
+				return nil, err
+			}
+			contentType := res.Header.Get("Content-Type")
+			// NOTE: application/octet-stream is for compatibility
+			if contentType != yamuxMimeType && contentType != "application/octet-stream" {
+				return nil, errors.Errorf("invalid content-type: %s", contentType)
+			}
+			return res, nil
 		},
 	)
 	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
