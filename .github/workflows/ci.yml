@@ -80,7 +80,7 @@ jobs:
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
 
-    # Multiplexing
+    # yamux
     - name: Run server-host with yamux
       run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux aaa-yamux bbb-yamux & echo $! > pid1
     - name: Run client-host with yamux
@@ -91,7 +91,7 @@ jobs:
     - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
     - run: kill $(cat pid1) && kill $(cat pid2)
 
-    # Multiplexing (encrypt with AES-CTR)
+    # yamux (encrypt with AES-CTR)
     - name: Run server-host with yamux (encrypt with AES-CTR)
       run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-yamux bbb-yamux & echo $! > pid1
     - name: Run client-host with yamux (encrypt with AES-CTR)
@@ -102,7 +102,7 @@ jobs:
     - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
     - run: kill $(cat pid1) && kill $(cat pid2)
 
-    # SOCKS
+    # yamux SOCKS
     - name: Run socks with yamux
       run: ./piping-tunnel -s http://localhost:8080 socks --yamux aaa-socks bbb-socks & echo $! > pid1
     - name: Run client-host with yamux
@@ -111,11 +111,22 @@ jobs:
     - run: curl -x socks5h://localhost:1081 https://example.com
     - run: kill $(cat pid1) && kill $(cat pid2)
 
-    # SOCKS (encrypt with AES-CTR)
+    # yamux SOCKS (encrypt with AES-CTR)
     - name: Run socks with yamux (encrypt with AES-CTR)
       run: ./piping-tunnel -s http://localhost:8080 socks --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid1
     - name: Run client-host with yamux (encrypt with AES-CTR)
       run: ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid2
     # NOTE: Depends on external resource: example.com
     - run: curl -x socks5h://localhost:1081 https://example.com
+    - run: kill $(cat pid1) && kill $(cat pid2)
+
+    # pmux
+    - name: Run server-host with pmux
+      run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --pmux aaa-pmux bbb-pmux & echo $! > pid1
+    - name: Run client-host with pmux
+      run: ./piping-tunnel -s http://localhost:8080 client -p 5522 --pmux aaa-pmux bbb-pmux & echo $! > pid2
+    # Check whether ssh multiple times
+    # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+    - run: ssh -p 5522 -o 'StrictHostKeyChecking no' guest@localhost hostname
+    - run: ssh -p 5522 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
     - run: kill $(cat pid1) && kill $(cat pid2)
