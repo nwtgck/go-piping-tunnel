@@ -98,7 +98,12 @@ var clientCmd = &cobra.Command{
 		ln.Close()
 		// If encryption is enabled
 		if clientSymmetricallyEncrypts {
-			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
+			var duplex io.ReadWriteCloser
+			duplex, err := piping_util.DuplexConnect(httpClient, headers, clientToServerUrl, serverToClientUrl)
+			if err != nil {
+				return err
+			}
+			duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
 			if err != nil {
 				return err
 			}
@@ -172,7 +177,28 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 }
 
 func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, clientToServerUrl, serverToClientUrl, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
+	var duplex io.ReadWriteCloser
+	duplex, err := piping_util.DuplexConnectWithHandlers(
+		func(body io.Reader) (*http.Response, error) {
+			return piping_util.PipingSend(httpClient, headersWithYamux(headers), clientToServerUrl, body)
+		},
+		func() (*http.Response, error) {
+			res, err := piping_util.PipingGet(httpClient, headers, serverToClientUrl)
+			if err != nil {
+				return nil, err
+			}
+			contentType := res.Header.Get("Content-Type")
+			// NOTE: application/octet-stream is for compatibility
+			if contentType != yamuxMimeType && contentType != "application/octet-stream" {
+				return nil, errors.Errorf("invalid content-type: %s", contentType)
+			}
+			return res, nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
 	if err != nil {
 		return err
 	}

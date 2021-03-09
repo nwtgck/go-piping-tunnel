@@ -7,6 +7,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
@@ -95,7 +96,12 @@ var serverCmd = &cobra.Command{
 		defer conn.Close()
 		// If encryption is enabled
 		if serverSymmetricallyEncrypts {
-			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
+			var duplex io.ReadWriteCloser
+			duplex, err := piping_util.DuplexConnect(httpClient, headers, serverToClientUrl, clientToServerUrl)
+			if err != nil {
+				return err
+			}
+			duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
 			if err != nil {
 				return err
 			}
@@ -158,7 +164,28 @@ func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, 
 }
 
 func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
+	var duplex io.ReadWriteCloser
+	duplex, err := piping_util.DuplexConnectWithHandlers(
+		func(body io.Reader) (*http.Response, error) {
+			return piping_util.PipingSend(httpClient, headersWithYamux(headers), serverToClientUrl, body)
+		},
+		func() (*http.Response, error) {
+			res, err := piping_util.PipingGet(httpClient, headers, clientToServerUrl)
+			if err != nil {
+				return nil, err
+			}
+			contentType := res.Header.Get("Content-Type")
+			// NOTE: application/octet-stream is for compatibility
+			if contentType != yamuxMimeType && contentType != "application/octet-stream" {
+				return nil, errors.Errorf("invalid content-type: %s", contentType)
+			}
+			return res, nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
 	if err != nil {
 		return err
 	}

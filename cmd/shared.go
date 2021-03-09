@@ -9,7 +9,6 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
 	"io"
-	"net/http"
 	"os"
 	"time"
 )
@@ -24,6 +23,8 @@ const (
 	symmetricallyEncryptPassphraseFlagLongName = "passphrase"
 	cipherTypeFlagLongName                     = "cipher-type"
 )
+
+const yamuxMimeType = "application/yamux"
 
 func validateClientCipher(str string) error {
 	switch str {
@@ -75,12 +76,8 @@ func makeUserInputPassphraseIfEmpty(passphrase *string) (err error) {
 	return nil
 }
 
-func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers []piping_util.KeyValue, uploadUrl, downloadUrl string, encrypts bool, passphrase string, cipherType string) (io.ReadWriteCloser, error) {
-	var duplex io.ReadWriteCloser
-	duplex, err := piping_util.DuplexConnect(httpClient, headers, uploadUrl, downloadUrl)
-	if err != nil {
-		return nil, err
-	}
+func makeDuplexWithEncryptionAndProgressIfNeed(duplex io.ReadWriteCloser, encrypts bool, passphrase string, cipherType string) (io.ReadWriteCloser, error) {
+	var err error
 	// If encryption is enabled
 	if encrypts {
 		var cipherName string
@@ -104,4 +101,8 @@ func makeDuplexWithEncryptionAndProgressIfNeed(httpClient *http.Client, headers 
 		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
 	}
 	return duplex, nil
+}
+
+func headersWithYamux(headers []piping_util.KeyValue) []piping_util.KeyValue {
+	return append(headers, piping_util.KeyValue{Key: "Content-Type", Value: yamuxMimeType})
 }

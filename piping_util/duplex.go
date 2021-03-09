@@ -13,15 +13,29 @@ type pipingDuplex struct {
 }
 
 func DuplexConnect(httpClient *http.Client, headers []KeyValue, uploadUrl, downloadUrl string) (*pipingDuplex, error) {
+	return DuplexConnectWithHandlers(
+		func(body io.Reader) (*http.Response, error) {
+			return PipingSend(httpClient, headers, uploadUrl, body)
+		},
+		func() (*http.Response, error) {
+			return PipingGet(httpClient, headers, downloadUrl)
+		},
+	)
+}
+
+type postHandler = func(body io.Reader) (*http.Response, error)
+type getHandler = func() (*http.Response, error)
+
+func DuplexConnectWithHandlers(post postHandler, get getHandler) (*pipingDuplex, error) {
 	uploadPr, uploadPw := io.Pipe()
-	_, err := PipingSend(httpClient, headers, uploadUrl, uploadPr)
+	_, err := post(uploadPr)
 	if err != nil {
 		return nil, err
 	}
 
 	downloadReaderChan := make(chan interface{})
 	go func() {
-		res, err := PipingGet(httpClient, headers, downloadUrl)
+		res, err := get()
 		if err != nil {
 			downloadReaderChan <- err
 			return
