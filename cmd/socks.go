@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/armon/go-socks5"
 	"github.com/hashicorp/yamux"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/nwtgck/go-socks"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
@@ -32,7 +32,7 @@ func init() {
 
 var socksCmd = &cobra.Command{
 	Use:   "socks",
-	Short: "Run SOCKS5 server",
+	Short: "Run SOCKS server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Validate cipher-type
 		if socksSymmetricallyEncrypts {
@@ -76,18 +76,18 @@ var socksCmd = &cobra.Command{
 			return errors.Errorf("--%s or --%s must be specified", yamuxFlagLongName, pmuxFlagLongName)
 		}
 
-		socks5Conf := &socks5.Config{}
-		socks5Server, err := socks5.New(socks5Conf)
+		socksConf := &socks.Config{}
+		socksServer, err := socks.New(socksConf)
 
 		// If yamux is enabled
 		if socksYamux {
 			fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
-			return socksHandleWithYamux(socks5Server, httpClient, headers, clientToServerUrl, serverToClientUrl)
+			return socksHandleWithYamux(socksServer, httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
 
 		// If pmux is enabled
 		fmt.Println("[INFO] Multiplexing with pmux")
-		return socksHandleWithPmux(socks5Server, httpClient, headers, clientToServerUrl, serverToClientUrl)
+		return socksHandleWithPmux(socksServer, httpClient, headers, clientToServerUrl, serverToClientUrl)
 	},
 }
 
@@ -123,7 +123,7 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 	)
 }
 
-func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+func socksHandleWithYamux(socksServer *socks.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
 	var duplex io.ReadWriteCloser
 	duplex, err := piping_util.DuplexConnectWithHandlers(
 		func(body io.Reader) (*http.Response, error) {
@@ -155,11 +155,11 @@ func socksHandleWithYamux(socks5Server *socks5.Server, httpClient *http.Client, 
 		if err != nil {
 			return err
 		}
-		go socks5Server.ServeConn(yamuxStream)
+		go socksServer.ServeConn(yamuxStream)
 	}
 }
 
-func socksHandleWithPmux(socks5Server *socks5.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+func socksHandleWithPmux(socksServer *socks.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
 	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
 	for {
 		stream, err := pmuxServer.Accept()
@@ -167,7 +167,7 @@ func socksHandleWithPmux(socks5Server *socks5.Server, httpClient *http.Client, h
 			return err
 		}
 		go func() {
-			err := socks5Server.ServeConn(util.NewDuplexConn(stream))
+			err := socksServer.ServeConn(util.NewDuplexConn(stream))
 			if err != nil {
 				// TODO:
 				fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
