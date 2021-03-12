@@ -33,9 +33,10 @@ func UrlJoin(s string, p ...string) (string, error) {
 func CreateHttpClient(insecure bool, writeBufSize int, readBufSize int) *http.Client {
 	// Set insecure or not
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
-		WriteBufferSize: writeBufSize,
-		ReadBufferSize:  readBufSize,
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: insecure},
+		WriteBufferSize:   writeBufSize,
+		ReadBufferSize:    readBufSize,
+		ForceAttemptHTTP2: true,
 	}
 	return &http.Client{Transport: tr}
 }
