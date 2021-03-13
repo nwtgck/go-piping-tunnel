@@ -30,7 +30,7 @@ const yamuxMimeType = "application/yamux"
 var vlog *verbose_logger.Logger
 
 func init() {
-	vlog = verbose_logger.New(0)
+	vlog = &verbose_logger.Logger{}
 }
 
 func validateClientCipher(str string) error {
