@@ -169,8 +169,8 @@ func socksHandleWithPmux(socksServer *socks.Server, httpClient *http.Client, hea
 			err := socksServer.ServeConn(util.NewDuplexConn(stream))
 			if err != nil {
 				vlog.Log(
-					fmt.Sprintf("error: %v", errors.WithStack(err)),
-					fmt.Sprintf("error: %+v", errors.WithStack(err)),
+					fmt.Sprintf("error(serve conn): %v", errors.WithStack(err)),
+					fmt.Sprintf("error(serve conn): %+v", errors.WithStack(err)),
 				)
 			}
 		}()

@@ -253,8 +253,8 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 			_, err := io.CopyBuffer(conn, stream, buf)
 			if err != nil {
 				vlog.Log(
-					fmt.Sprintf("error: %v", errors.WithStack(err)),
-					fmt.Sprintf("error: %+v", errors.WithStack(err)),
+					fmt.Sprintf("error(pmux stream → conn): %v", errors.WithStack(err)),
+					fmt.Sprintf("error(pmux stream → conn): %+v", errors.WithStack(err)),
 				)
 				conn.Close()
 				return
@@ -267,8 +267,8 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 			_, err := io.CopyBuffer(stream, conn, buf)
 			if err != nil {
 				vlog.Log(
-					fmt.Sprintf("error: %v", errors.WithStack(err)),
-					fmt.Sprintf("error: %+v", errors.WithStack(err)),
+					fmt.Sprintf("error(conn → pmux stream): %v", errors.WithStack(err)),
+					fmt.Sprintf("error(conn → pmux stream): %+v", errors.WithStack(err)),
 				)
 				conn.Close()
 				return
