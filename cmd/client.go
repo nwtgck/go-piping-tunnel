@@ -12,7 +12,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -257,8 +256,10 @@ func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []pi
 		}
 		stream, err := pmuxClient.Open()
 		if err != nil {
-			// TODO:
-			fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
+			vlog.Log(
+				fmt.Sprintf("error(pmux open): %v", errors.WithStack(err)),
+				fmt.Sprintf("error(pmux open): %+v", errors.WithStack(err)),
+			)
 			continue
 		}
 		fin := make(chan struct{})
@@ -268,8 +269,10 @@ func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []pi
 			_, err := io.CopyBuffer(conn, stream, buf)
 			fin <- struct{}{}
 			if err != nil {
-				// TODO:
-				fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
+				vlog.Log(
+					fmt.Sprintf("error(pmux stream → conn): %v", errors.WithStack(err)),
+					fmt.Sprintf("error(pmux stream → conn): %+v", errors.WithStack(err)),
+				)
 				return
 			}
 		}()
@@ -280,8 +283,10 @@ func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []pi
 			_, err := io.CopyBuffer(stream, conn, buf)
 			fin <- struct{}{}
 			if err != nil {
-				// TODO:
-				fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
+				vlog.Log(
+					fmt.Sprintf("error(conn → pmux stream): %v", errors.WithStack(err)),
+					fmt.Sprintf("error(conn → pmux stream): %+v", errors.WithStack(err)),
+				)
 				return
 			}
 		}()

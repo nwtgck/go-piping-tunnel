@@ -12,7 +12,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -253,8 +252,10 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 			var buf = make([]byte, 16)
 			_, err := io.CopyBuffer(conn, stream, buf)
 			if err != nil {
-				// TODO:
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				vlog.Log(
+					fmt.Sprintf("error(pmux stream → conn): %v", errors.WithStack(err)),
+					fmt.Sprintf("error(pmux stream → conn): %+v", errors.WithStack(err)),
+				)
 				conn.Close()
 				return
 			}
@@ -265,8 +266,10 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 			var buf = make([]byte, 16)
 			_, err := io.CopyBuffer(stream, conn, buf)
 			if err != nil {
-				// TODO:
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				vlog.Log(
+					fmt.Sprintf("error(conn → pmux stream): %v", errors.WithStack(err)),
+					fmt.Sprintf("error(conn → pmux stream): %+v", errors.WithStack(err)),
+				)
 				conn.Close()
 				return
 			}

@@ -19,6 +19,7 @@ var showProgress bool
 var headerKeyValueStrs []string
 var httpWriteBufSize int
 var httpReadBufSize int
+var verboseLoggerLevel int
 
 func init() {
 	cobra.OnInitialize()
@@ -35,6 +36,7 @@ func init() {
 	RootCmd.PersistentFlags().IntVarP(&httpReadBufSize, "http-read-buf-size", "", 16, "HTTP read-buffer size in bytes")
 	RootCmd.PersistentFlags().BoolVarP(&showProgress, "progress", "", true, "Show progress")
 	RootCmd.Flags().BoolVarP(&showsVersion, "version", "v", false, "show version")
+	RootCmd.PersistentFlags().IntVarP(&verboseLoggerLevel, "verbose", "", 0, "Verbose logging level")
 }
 
 var RootCmd = &cobra.Command{
@@ -68,5 +70,8 @@ Environment variable:
 			return nil
 		}
 		return cmd.Help()
+	},
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		vlog.Level = verboseLoggerLevel
 	},
 }

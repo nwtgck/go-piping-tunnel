@@ -7,6 +7,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/nwtgck/go-piping-tunnel/verbose_logger"
 	"github.com/pkg/errors"
 	"io"
 	"os"
@@ -25,6 +26,12 @@ const (
 )
 
 const yamuxMimeType = "application/yamux"
+
+var vlog *verbose_logger.Logger
+
+func init() {
+	vlog = &verbose_logger.Logger{}
+}
 
 func validateClientCipher(str string) error {
 	switch str {
