@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -169,8 +168,10 @@ func socksHandleWithPmux(socksServer *socks.Server, httpClient *http.Client, hea
 		go func() {
 			err := socksServer.ServeConn(util.NewDuplexConn(stream))
 			if err != nil {
-				// TODO:
-				fmt.Fprintf(os.Stderr, "error: %+v\n", errors.WithStack(err))
+				vlog.Log(
+					fmt.Sprintf("error: %v", errors.WithStack(err)),
+					fmt.Sprintf("error: %+v", errors.WithStack(err)),
+				)
 			}
 		}()
 	}
