@@ -30,7 +30,7 @@ func init() {
 	serverCmd.Flags().StringVarP(&serverTargetHost, "host", "", "localhost", "Target host")
 	serverCmd.Flags().IntVarP(&serverHostPort, "port", "p", 0, "TCP port of server host")
 	serverCmd.MarkFlagRequired("port")
-	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "c-to-s-buf-size", "", 16, "Buffer size of client-to-server in bytes")
+	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "cs-buf-size", "", 16, "Buffer size of client-to-server in bytes")
 	serverCmd.Flags().BoolVarP(&serverYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
 	serverCmd.Flags().BoolVarP(&serverPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
 	serverCmd.Flags().BoolVarP(&serverSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
