@@ -50,8 +50,8 @@ Normal:
   piping-tunnel client -p 1022 aaa bbb
 
 Short:
-  piping-tunnel server -p 22 aaa
-  piping-tunnel client -p 1022 aaa
+  piping-tunnel server -p 22 mypath
+  piping-tunnel client -p 1022 mypath
 
 Multiplexing:
   piping-tunnel server -p 22 --yamux aaa bbb

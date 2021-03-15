@@ -25,16 +25,39 @@ Get more executables in the [releases](https://github.com/nwtgck/go-piping-tunne
 You can use `$PIPING_SERVER` env to set default Piping Server.
 
 ```txt
-Tunnel over Piping Server
+Tunneling from anywhere with Piping Server
 
 Usage:
   piping-tunnel [flags]
   piping-tunnel [command]
 
+Examples:
+
+Normal:
+  piping-tunnel server -p 22 aaa bbb
+  piping-tunnel client -p 1022 aaa bbb
+
+Short:
+  piping-tunnel server -p 22 mypath
+  piping-tunnel client -p 1022 mypath
+
+Multiplexing:
+  piping-tunnel server -p 22 --yamux aaa bbb
+  piping-tunnel client -p 1022 --yamux aaa bbb
+
+SOCKS proxy like VPN:
+  piping-tunnel socks --yamux aaa bbb
+  piping-tunnel client -p 1080 --yamux aaa bbb
+
+Environment variable:
+  $PIPING_SERVER for default Piping Server
+
+
 Available Commands:
   client      Run client-host
   help        Help about any command
   server      Run server-host
+  socks       Run SOCKS server
 
 Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
@@ -45,7 +68,10 @@ Flags:
   -k, --insecure                  Allow insecure server connections when using SSL
       --progress                  Show progress (default true)
   -s, --server string             Piping Server URL (default "https://ppng.io")
+      --verbose int               Verbose logging level
   -v, --version                   show version
+
+Use "piping-tunnel [command] --help" for more information about a command.
 ```
 
 The following help is for server-host.
@@ -56,10 +82,15 @@ Usage:
   piping-tunnel server [flags]
 
 Flags:
-      --c-to-s-buf-size uint   Buffer size of client-to-server in bytes (default 16)
-  -h, --help                   help for server
-  -p, --port int               TCP port of server host
-      --yamux                  Multiplex connection by hashicorp/yamux
+      --cipher-type string   Cipher type: aes-ctr, openpgp (default "aes-ctr")
+      --cs-buf-size uint     Buffer size of client-to-server in bytes (default 16)
+  -h, --help                 help for server
+      --host string          Target host (default "localhost")
+      --passphrase string    Passphrase for encryption
+      --pmux                 Multiplex connection by pmux (experimental)
+  -p, --port int             TCP port of server host
+  -c, --symmetric            Encrypt symmetrically
+      --yamux                Multiplex connection by hashicorp/yamux
 
 Global Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
@@ -69,6 +100,7 @@ Global Flags:
   -k, --insecure                  Allow insecure server connections when using SSL
       --progress                  Show progress (default true)
   -s, --server string             Piping Server URL (default "https://ppng.io")
+      --verbose int               Verbose logging level
 ```
 
 The following help is for client-host.
@@ -79,10 +111,14 @@ Usage:
   piping-tunnel client [flags]
 
 Flags:
-  -h, --help                   help for client
-  -p, --port int               TCP port of client host
-      --s-to-c-buf-size uint   Buffer size of server-to-client in bytes (default 16)
-      --yamux                  Multiplex connection by hashicorp/yamux
+      --cipher-type string   Cipher type: aes-ctr, openpgp (default "aes-ctr")
+  -h, --help                 help for client
+      --passphrase string    Passphrase for encryption
+      --pmux                 Multiplex connection by pmux (experimental)
+  -p, --port int             TCP port of client host
+      --sc-buf-size uint     Buffer size of server-to-client in bytes (default 16)
+  -c, --symmetric            Encrypt symmetrically
+      --yamux                Multiplex connection by hashicorp/yamux
 
 Global Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
@@ -92,19 +128,24 @@ Global Flags:
   -k, --insecure                  Allow insecure server connections when using SSL
       --progress                  Show progress (default true)
   -s, --server string             Piping Server URL (default "https://ppng.io")
+      --verbose int               Verbose logging level
 ```
 
-The following help is for SOCKS5 proxy.
+The following help is for SOCKS proxy.
 
 ```
-Run SOCKS5 server
+Run SOCKS server
 
 Usage:
   piping-tunnel socks [flags]
 
 Flags:
-  -h, --help    help for socks
-      --yamux   Multiplex connection by hashicorp/yamux
+      --cipher-type string   Cipher type: aes-ctr, openpgp (default "aes-ctr")
+  -h, --help                 help for socks
+      --passphrase string    Passphrase for encryption
+      --pmux                 Multiplex connection by pmux (experimental)
+  -c, --symmetric            Encrypt symmetrically
+      --yamux                Multiplex connection by hashicorp/yamux
 
 Global Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
@@ -114,6 +155,7 @@ Global Flags:
   -k, --insecure                  Allow insecure server connections when using SSL
       --progress                  Show progress (default true)
   -s, --server string             Piping Server URL (default "https://ppng.io")
+      --verbose int               Verbose logging level
 ```
 
 ## References
