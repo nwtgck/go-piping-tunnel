@@ -57,7 +57,7 @@ Multiplexing:
   piping-tunnel server -p 22 --yamux aaa bbb
   piping-tunnel client -p 1022 --yamux aaa bbb
 
-SOCKS5 like VPN:
+SOCKS proxy like VPN:
   piping-tunnel socks --yamux aaa bbb
   piping-tunnel client -p 1080 --yamux aaa bbb
 
