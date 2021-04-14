@@ -121,12 +121,16 @@ jobs:
     - run: kill $(cat pid1) && kill $(cat pid2)
 
     # pmux
-    - name: Run server-host with pmux
+    - name: Run server-host1 with pmux
       run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --pmux aaa-pmux bbb-pmux & echo $! > pid1
-    - name: Run client-host with pmux
+    # pmux allows multiple clients in one set of paths
+    - name: Run client-host1 with pmux
       run: ./piping-tunnel -s http://localhost:8080 client -p 5522 --pmux aaa-pmux bbb-pmux & echo $! > pid2
+    - name: Run client-host2 with pmux
+      run: ./piping-tunnel -s http://localhost:8080 client -p 6622 --pmux aaa-pmux bbb-pmux & echo $! > pid3
     # Check whether ssh multiple times
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 5522 -o 'StrictHostKeyChecking no' guest@localhost hostname
     - run: ssh -p 5522 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
-    - run: kill $(cat pid1) && kill $(cat pid2)
+    - run: ssh -p 6622 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
+    - run: kill $(cat pid1) && kill $(cat pid2) && kill $(cat pid3)
