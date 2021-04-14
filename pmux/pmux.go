@@ -29,7 +29,7 @@ type server struct {
 	baseDownloadUrl string
 	encrypts        bool
 	passphrase      string
-	cipherType      string
+	cipherType      string // NOTE: encryption in pmux can be updated in the different way in the future such as negotiating algorithm
 }
 
 type client struct {
