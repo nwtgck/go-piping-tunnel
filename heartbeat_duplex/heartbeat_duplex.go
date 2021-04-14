@@ -1,6 +1,7 @@
 package heartbeat_duplex
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"github.com/pkg/errors"
 	"io"
@@ -25,7 +26,9 @@ func Duplex(duplex io.ReadWriteCloser) io.ReadWriteCloser {
 		heartbeatInterval := 30 * time.Second
 		for {
 			d.writeMutex.Lock()
-			d.inner.Write([]byte{flagHeartbeat})
+			randomBytes := make([]byte, 1)
+			io.ReadFull(rand.Reader, randomBytes)
+			d.inner.Write([]byte{flagHeartbeat, randomBytes[0]})
 			d.writeMutex.Unlock()
 			time.Sleep(heartbeatInterval)
 		}
@@ -43,6 +46,12 @@ func (d *duplexWithHeartbeat) Read(p []byte) (int, error) {
 		flag := b[0]
 		switch flag {
 		case flagHeartbeat:
+			// Discard one random byte
+			b := make([]byte, 1)
+			_, err := io.ReadFull(d.inner, b)
+			if err != nil {
+				return 0, err
+			}
 			return d.Read(p)
 		case flagData:
 			lengthBytes := make([]byte, 4)
