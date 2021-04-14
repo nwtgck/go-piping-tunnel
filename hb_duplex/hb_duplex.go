@@ -1,4 +1,4 @@
-package heartbeat_duplex
+package hb_duplex
 
 import (
 	"crypto/rand"
@@ -10,25 +10,25 @@ import (
 )
 
 const (
-	flagData byte = iota
-	flagHeartbeat
+	dataType byte = iota
+	heartbeatType
 )
 
-type duplexWithHeartbeat struct {
+type hbDuplex struct {
 	inner      io.ReadWriteCloser
 	rest       uint32
 	writeMutex *sync.Mutex
 }
 
 func Duplex(duplex io.ReadWriteCloser) io.ReadWriteCloser {
-	d := &duplexWithHeartbeat{inner: duplex, rest: 0, writeMutex: new(sync.Mutex)}
+	d := &hbDuplex{inner: duplex, rest: 0, writeMutex: new(sync.Mutex)}
 	go func() {
 		heartbeatInterval := 30 * time.Second
 		for {
 			d.writeMutex.Lock()
 			randomBytes := make([]byte, 1)
 			io.ReadFull(rand.Reader, randomBytes)
-			d.inner.Write([]byte{flagHeartbeat, randomBytes[0]})
+			d.inner.Write([]byte{heartbeatType, randomBytes[0]})
 			d.writeMutex.Unlock()
 			time.Sleep(heartbeatInterval)
 		}
@@ -36,7 +36,7 @@ func Duplex(duplex io.ReadWriteCloser) io.ReadWriteCloser {
 	return d
 }
 
-func (d *duplexWithHeartbeat) Read(p []byte) (int, error) {
+func (d *hbDuplex) Read(p []byte) (int, error) {
 	if d.rest == 0 {
 		b := make([]byte, 1)
 		_, err := io.ReadFull(d.inner, b)
@@ -45,7 +45,7 @@ func (d *duplexWithHeartbeat) Read(p []byte) (int, error) {
 		}
 		flag := b[0]
 		switch flag {
-		case flagHeartbeat:
+		case heartbeatType:
 			// Discard one random byte
 			b := make([]byte, 1)
 			_, err := io.ReadFull(d.inner, b)
@@ -53,7 +53,7 @@ func (d *duplexWithHeartbeat) Read(p []byte) (int, error) {
 				return 0, err
 			}
 			return d.Read(p)
-		case flagData:
+		case dataType:
 			lengthBytes := make([]byte, 4)
 			_, err = io.ReadFull(d.inner, lengthBytes)
 			if err != nil {
@@ -74,13 +74,13 @@ func (d *duplexWithHeartbeat) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func (d *duplexWithHeartbeat) Write(p []byte) (int, error) {
+func (d *hbDuplex) Write(p []byte) (int, error) {
 	length := uint32(len(p))
 	lengthBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(lengthBytes, length)
 	d.writeMutex.Lock()
 	defer d.writeMutex.Unlock()
-	bytes := append([]byte{flagData}, lengthBytes...)
+	bytes := append([]byte{dataType}, lengthBytes...)
 	n, err := d.inner.Write(bytes)
 	if n != len(bytes) {
 		return n, io.ErrShortWrite
@@ -91,6 +91,6 @@ func (d *duplexWithHeartbeat) Write(p []byte) (int, error) {
 	return d.inner.Write(p)
 }
 
-func (d *duplexWithHeartbeat) Close() error {
+func (d *hbDuplex) Close() error {
 	return d.inner.Close()
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/backoff"
 	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/early_piping_duplex"
-	"github.com/nwtgck/go-piping-tunnel/heartbeat_duplex"
+	"github.com/nwtgck/go-piping-tunnel/hb_duplex"
 	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -165,7 +165,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	duplex = heartbeat_duplex.Duplex(duplex)
+	duplex = hb_duplex.Duplex(duplex)
 	if s.encrypts {
 		switch s.cipherType {
 		case piping_util.CipherTypeAesCtr:
@@ -280,7 +280,7 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	duplex = heartbeat_duplex.Duplex(duplex)
+	duplex = hb_duplex.Duplex(duplex)
 	if c.encrypts {
 		switch c.cipherType {
 		case piping_util.CipherTypeAesCtr:
