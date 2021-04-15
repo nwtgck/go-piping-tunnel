@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/yamux"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
@@ -16,6 +17,7 @@ import (
 
 var socksYamux bool
 var socksPmux bool
+var socksPmuxConfig string
 var socksSymmetricallyEncrypts bool
 var socksSymmetricallyEncryptPassphrase string
 var socksCipherType string
@@ -24,6 +26,7 @@ func init() {
 	RootCmd.AddCommand(socksCmd)
 	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
 	socksCmd.Flags().BoolVarP(&socksPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
+	socksCmd.Flags().StringVarP(&socksPmuxConfig, pmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
 	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
 	socksCmd.Flags().StringVarP(&socksCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpenpgp))
@@ -159,7 +162,11 @@ func socksHandleWithYamux(socksServer *socks.Server, httpClient *http.Client, he
 }
 
 func socksHandleWithPmux(socksServer *socks.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
+	var config serverPmuxConfigJson
+	if json.Unmarshal([]byte(socksPmuxConfig), &config) != nil {
+		return errors.Errorf("invalid pmux config format")
+	}
+	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, config.Hb, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
 	for {
 		stream, err := pmuxServer.Accept()
 		if err != nil {

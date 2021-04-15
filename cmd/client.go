@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/yamux"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
@@ -19,6 +20,7 @@ var clientHostPort int
 var clientServerToClientBufSize uint
 var clientYamux bool
 var clientPmux bool
+var clientPmuxConfig string
 var clientSymmetricallyEncrypts bool
 var clientSymmetricallyEncryptPassphrase string
 var clientCipherType string
@@ -29,6 +31,7 @@ func init() {
 	clientCmd.Flags().UintVarP(&clientServerToClientBufSize, "sc-buf-size", "", 16, "Buffer size of server-to-client in bytes")
 	clientCmd.Flags().BoolVarP(&clientYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
 	clientCmd.Flags().BoolVarP(&clientPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
+	clientCmd.Flags().StringVarP(&clientPmuxConfig, pmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
 	clientCmd.Flags().BoolVarP(&clientSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	clientCmd.Flags().StringVarP(&clientSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
 	clientCmd.Flags().StringVarP(&clientCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpenpgp))
@@ -239,12 +242,19 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 }
 
 func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	pmuxClient, err := pmux.Client(httpClient, headers, clientToServerUrl, serverToClientUrl, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
+	var config clientPmuxConfigJson
+	if json.Unmarshal([]byte(clientPmuxConfig), &config) != nil {
+		return errors.Errorf("invalid pmux config format")
+	}
+	pmuxClient, err := pmux.Client(httpClient, headers, clientToServerUrl, serverToClientUrl, config.Hb, clientSymmetricallyEncrypts, clientSymmetricallyEncryptPassphrase, clientCipherType)
 	if err != nil {
 		if err == pmux.NonPmuxMimeTypeError {
 			return errors.Errorf("--%s may be missing in server", pmuxFlagLongName)
 		}
 		if err == pmux.IncompatiblePmuxVersion {
+			return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
+		}
+		if err == pmux.IncompatibleServerConfigError {
 			return errors.Errorf("%s, hint: use the same piping-tunnel version (current: %s)", err.Error(), version.Version)
 		}
 		return err
