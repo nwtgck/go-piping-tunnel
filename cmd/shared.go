@@ -19,6 +19,7 @@ const defaultCipherType = piping_util.CipherTypeAesCtr
 const (
 	yamuxFlagLongName                          = "yamux"
 	pmuxFlagLongName                           = "pmux"
+	pmuxConfigFlagLongName                     = "pmux-config"
 	symmetricallyEncryptsFlagLongName          = "symmetric"
 	symmetricallyEncryptsFlagShortName         = "c"
 	symmetricallyEncryptPassphraseFlagLongName = "passphrase"
@@ -26,6 +27,14 @@ const (
 )
 
 const yamuxMimeType = "application/yamux"
+
+type serverPmuxConfigJson struct {
+	Hb bool `json:"hb"`
+}
+
+type clientPmuxConfigJson struct {
+	Hb bool `json:"hb"`
+}
 
 var vlog *verbose_logger.Logger
 

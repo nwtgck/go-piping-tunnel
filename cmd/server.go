@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/yamux"
 	"github.com/nwtgck/go-piping-tunnel/backoff"
@@ -21,6 +22,7 @@ var serverHostPort int
 var serverClientToServerBufSize uint
 var serverYamux bool
 var serverPmux bool
+var serverPmuxConfig string
 var serverSymmetricallyEncrypts bool
 var serverSymmetricallyEncryptPassphrase string
 var serverCipherType string
@@ -33,6 +35,7 @@ func init() {
 	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "cs-buf-size", "", 16, "Buffer size of client-to-server in bytes")
 	serverCmd.Flags().BoolVarP(&serverYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
 	serverCmd.Flags().BoolVarP(&serverPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
+	serverCmd.Flags().StringVarP(&serverPmuxConfig, pmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
 	serverCmd.Flags().BoolVarP(&serverSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	serverCmd.Flags().StringVarP(&serverSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
 	serverCmd.Flags().StringVarP(&serverCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpenpgp))
@@ -240,7 +243,11 @@ func dialLoop(network string, address string) net.Conn {
 }
 
 func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
+	var config serverPmuxConfigJson
+	if json.Unmarshal([]byte(serverPmuxConfig), &config) != nil {
+		return errors.Errorf("invalid pmux config format")
+	}
+	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, config.Hb, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
 	for {
 		stream, err := pmuxServer.Accept()
 		if err != nil {

@@ -27,6 +27,7 @@ type server struct {
 	headers         []piping_util.KeyValue
 	baseUploadUrl   string
 	baseDownloadUrl string
+	enableHb        bool
 	encrypts        bool
 	passphrase      string
 	cipherType      string // NOTE: encryption in pmux can be updated in the different way in the future such as negotiating algorithm
@@ -37,9 +38,14 @@ type client struct {
 	headers         []piping_util.KeyValue
 	baseUploadUrl   string
 	baseDownloadUrl string
+	enableHb        bool
 	encrypts        bool
 	passphrase      string
 	cipherType      string
+}
+
+type serverConfigJson struct {
+	Hb bool `json:"hb"`
 }
 
 type syncJson struct {
@@ -53,6 +59,8 @@ const httpTimeout = 50 * time.Second
 var pmuxVersionBytes [4]byte
 var IncompatiblePmuxVersion = errors.Errorf("incompatible pmux version, expected %d", pmuxVersion)
 var NonPmuxMimeTypeError = errors.Errorf("invalid content-type, expected %s", pmuxMimeType)
+var IncompatibleServerConfigError = errors.Errorf("imcompatible server config")
+var DifferentHbSettingError = errors.Errorf("different hb setting from server's")
 
 func init() {
 	binary.BigEndian.PutUint32(pmuxVersionBytes[:], pmuxVersion)
@@ -62,17 +70,18 @@ func headersWithPmux(headers []piping_util.KeyValue) []piping_util.KeyValue {
 	return append(headers, piping_util.KeyValue{Key: "Content-Type", Value: pmuxMimeType})
 }
 
-func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string, encrypts bool, passphrase string, cipherType string) *server {
+func Server(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string, enableHb bool, encrypts bool, passphrase string, cipherType string) *server {
 	server := &server{
 		httpClient:      httpClient,
 		headers:         headers,
 		baseUploadUrl:   baseUploadUrl,
 		baseDownloadUrl: baseDownloadUrl,
+		enableHb:        enableHb,
 		encrypts:        encrypts,
 		passphrase:      passphrase,
 		cipherType:      cipherType,
 	}
-	go server.sendVersionLoop()
+	go server.sendVersionAndConfigLoop()
 	return server
 }
 
@@ -84,12 +93,19 @@ func (e *getSubPathStatusError) Error() string {
 	return fmt.Sprintf("not status 200, found: %d", e.statusCode)
 }
 
-func (s *server) sendVersionLoop() {
+func (s *server) sendVersionAndConfigLoop() {
 	b := backoff.NewExponentialBackoff()
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 		defer cancel()
-		postRes, err := piping_util.PipingSendWithContext(ctx, s.httpClient, headersWithPmux(s.headers), s.baseUploadUrl, bytes.NewReader(pmuxVersionBytes[:]))
+		// NOTE: In the future, config scheme can change more efficient format than JSON
+		configJsonBytes, err := json.Marshal(serverConfigJson{Hb: s.enableHb})
+		if err != nil {
+			// backoff
+			time.Sleep(b.NextDuration())
+			continue
+		}
+		postRes, err := piping_util.PipingSendWithContext(ctx, s.httpClient, headersWithPmux(s.headers), s.baseUploadUrl, bytes.NewReader(append(pmuxVersionBytes[:], configJsonBytes...)))
 		// If timeout
 		if util.IsTimeoutErr(err) {
 			// reset backoff
@@ -165,7 +181,9 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	duplex = hb_duplex.Duplex(duplex)
+	if s.enableHb {
+		duplex = hb_duplex.Duplex(duplex)
+	}
 	if s.encrypts {
 		switch s.cipherType {
 		case piping_util.CipherTypeAesCtr:
@@ -180,20 +198,21 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 	return duplex, err
 }
 
-func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string, encrypts bool, passphrase string, cipherType string) (*client, error) {
+func Client(httpClient *http.Client, headers []piping_util.KeyValue, baseUploadUrl string, baseDownloadUrl string, enableHb bool, encrypts bool, passphrase string, cipherType string) (*client, error) {
 	client := &client{
 		httpClient:      httpClient,
 		headers:         headers,
 		baseUploadUrl:   baseUploadUrl,
 		baseDownloadUrl: baseDownloadUrl,
+		enableHb:        enableHb,
 		encrypts:        encrypts,
 		passphrase:      passphrase,
 		cipherType:      cipherType,
 	}
-	return client, client.checkServerVersion()
+	return client, client.checkServerVersionAndConfig()
 }
 
-func (c *client) checkServerVersion() error {
+func (c *client) checkServerVersionAndConfig() error {
 	b := backoff.NewExponentialBackoff()
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
@@ -224,6 +243,19 @@ func (c *client) checkServerVersion() error {
 		serverVersion := binary.BigEndian.Uint32(versionBytes)
 		if serverVersion != pmuxVersion {
 			return IncompatiblePmuxVersion
+		}
+		serverConfigJsonBytes, err := io.ReadAll(postRes.Body)
+		if err != nil {
+			// backoff
+			time.Sleep(b.NextDuration())
+			continue
+		}
+		var serverConfig serverConfigJson
+		if json.Unmarshal(serverConfigJsonBytes, &serverConfig) != nil {
+			return IncompatibleServerConfigError
+		}
+		if serverConfig.Hb != c.enableHb {
+			return DifferentHbSettingError
 		}
 		return nil
 	}
@@ -280,7 +312,9 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	duplex = hb_duplex.Duplex(duplex)
+	if c.enableHb {
+		duplex = hb_duplex.Duplex(duplex)
+	}
 	if c.encrypts {
 		switch c.cipherType {
 		case piping_util.CipherTypeAesCtr:

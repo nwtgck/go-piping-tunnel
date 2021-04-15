@@ -88,6 +88,7 @@ Flags:
       --host string          Target host (default "localhost")
       --passphrase string    Passphrase for encryption
       --pmux                 Multiplex connection by pmux (experimental)
+      --pmux-config string   pmux config in JSON (experimental) (default "{\"hb\": true}")
   -p, --port int             TCP port of server host
   -c, --symmetric            Encrypt symmetrically
       --yamux                Multiplex connection by hashicorp/yamux
@@ -115,6 +116,7 @@ Flags:
   -h, --help                 help for client
       --passphrase string    Passphrase for encryption
       --pmux                 Multiplex connection by pmux (experimental)
+      --pmux-config string   pmux config in JSON (experimental) (default "{\"hb\": true}")
   -p, --port int             TCP port of client host
       --sc-buf-size uint     Buffer size of server-to-client in bytes (default 16)
   -c, --symmetric            Encrypt symmetrically
@@ -144,6 +146,7 @@ Flags:
   -h, --help                 help for socks
       --passphrase string    Passphrase for encryption
       --pmux                 Multiplex connection by pmux (experimental)
+      --pmux-config string   pmux config in JSON (experimental) (default "{\"hb\": true}")
   -c, --symmetric            Encrypt symmetrically
       --yamux                Multiplex connection by hashicorp/yamux
 
