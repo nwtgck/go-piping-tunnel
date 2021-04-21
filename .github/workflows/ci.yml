@@ -83,6 +83,7 @@ jobs:
       run: |
         set -eux
         socat UNIX-LISTEN:/tmp/my_nginx_socat TCP:localhost:8888 &
+        sleep 1
         ./piping-tunnel -s http://localhost:8080 server --unix-socket=/tmp/my_nginx_socat aaa bbb &
         ./piping-tunnel -s http://localhost:8080 client -p 8889 aaa bbb &
         sleep 1
