@@ -13,10 +13,12 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
 var clientHostPort int
+var clientHostUnixSocket string
 var clientServerToClientBufSize uint
 var clientYamux bool
 var clientPmux bool
@@ -28,6 +30,7 @@ var clientCipherType string
 func init() {
 	RootCmd.AddCommand(clientCmd)
 	clientCmd.Flags().IntVarP(&clientHostPort, "port", "p", 0, "TCP port of client host")
+	clientCmd.Flags().StringVarP(&clientHostUnixSocket, "unix-socket", "", "", "Unix socket of client host")
 	clientCmd.Flags().UintVarP(&clientServerToClientBufSize, "sc-buf-size", "", 16, "Buffer size of server-to-client in bytes")
 	clientCmd.Flags().BoolVarP(&clientYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
 	clientCmd.Flags().BoolVarP(&clientPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
@@ -68,7 +71,12 @@ var clientCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", clientHostPort))
+		var ln net.Listener
+		if clientHostUnixSocket == "" {
+			ln, err = net.Listen("tcp", fmt.Sprintf(":%d", clientHostPort))
+		} else {
+			ln, err = net.Listen("unix", clientHostUnixSocket)
+		}
 		if err != nil {
 			return err
 		}
@@ -136,9 +144,15 @@ var clientCmd = &cobra.Command{
 }
 
 func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
-	// (from: https://stackoverflow.com/a/43425461)
-	clientHostPort = ln.Addr().(*net.TCPAddr).Port
-	fmt.Printf("[INFO] Client host listening on %d ...\n", clientHostPort)
+	var listeningOn string
+	if addr, ok := ln.Addr().(*net.TCPAddr); ok {
+		// (base: https://stackoverflow.com/a/43425461)
+		clientHostPort = addr.Port
+		listeningOn = strconv.Itoa(addr.Port)
+	} else {
+		listeningOn = clientHostUnixSocket
+	}
+	fmt.Printf("[INFO] Client host listening on %s ...\n", listeningOn)
 	if !clientYamux && !clientPmux {
 		fmt.Println("[INFO] Hint: Server host (socat + curl)")
 		fmt.Printf(
