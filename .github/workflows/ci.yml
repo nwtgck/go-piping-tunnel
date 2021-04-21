@@ -74,9 +74,14 @@ jobs:
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
 
+    # Unix socket on server host side
+    - run: ./piping-tunnel -s http://localhost:8080 server --unix-socket=/var/run/docker.sock aaa bbb &
+    - run: ./piping-tunnel -s http://localhost:8080 client -p 5566 aaa bbb &
+    - run: curl localhost:5566/docker/images/json
+
     # Unix socket on client host side
-    - run: ./piping-tunnel server -p 8888 aaa bbb &
-    - run: ./piping-tunnel client --unix-socket=/tmp/my_unginx aaa bbb &
+    - run: ./piping-tunnel -s http://localhost:8080 server -p 8888 aaa bbb &
+    - run: ./piping-tunnel -s http://localhost:8080 client --unix-socket=/tmp/my_unginx aaa bbb &
     - run: curl --unix-socket /tmp/my_unginx http:/index.html
 
     # Encrypt with AES-CTR
