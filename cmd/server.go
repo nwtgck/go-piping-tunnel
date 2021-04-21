@@ -19,6 +19,7 @@ import (
 
 var serverTargetHost string
 var serverHostPort int
+var serverHostUnixSocket string
 var serverClientToServerBufSize uint
 var serverYamux bool
 var serverPmux bool
@@ -31,7 +32,7 @@ func init() {
 	RootCmd.AddCommand(serverCmd)
 	serverCmd.Flags().StringVarP(&serverTargetHost, "host", "", "localhost", "Target host")
 	serverCmd.Flags().IntVarP(&serverHostPort, "port", "p", 0, "TCP port of server host")
-	serverCmd.MarkFlagRequired("port")
+	serverCmd.Flags().StringVarP(&serverHostUnixSocket, "unix-socket", "", "", "Unix socket of server host")
 	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "cs-buf-size", "", 16, "Buffer size of client-to-server in bytes")
 	serverCmd.Flags().BoolVarP(&serverYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
 	serverCmd.Flags().BoolVarP(&serverPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
@@ -93,7 +94,7 @@ var serverCmd = &cobra.Command{
 			return serverHandleWithPmux(httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
 
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", serverTargetHost, serverHostPort))
+		conn, err := serverHostDial()
 		if err != nil {
 			return err
 		}
@@ -133,6 +134,14 @@ var serverCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func serverHostDial() (net.Conn, error) {
+	if serverHostUnixSocket == "" {
+		return net.Dial("tcp", fmt.Sprintf("%s:%d", serverTargetHost, serverHostPort))
+	} else {
+		return net.Dial("unix", serverHostUnixSocket)
+	}
 }
 
 func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
@@ -202,7 +211,7 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyVal
 		if err != nil {
 			return err
 		}
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", serverTargetHost, serverHostPort))
+		conn, err := serverHostDial()
 		if err != nil {
 			return err
 		}
@@ -229,10 +238,10 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyVal
 	}
 }
 
-func dialLoop(network string, address string) net.Conn {
+func dialLoop() net.Conn {
 	b := backoff.NewExponentialBackoff()
 	for {
-		conn, err := net.Dial(network, address)
+		conn, err := serverHostDial()
 		if err != nil {
 			// backoff
 			time.Sleep(b.NextDuration())
@@ -253,7 +262,7 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 		if err != nil {
 			return err
 		}
-		conn := dialLoop("tcp", fmt.Sprintf("%s:%d", serverTargetHost, serverHostPort))
+		conn := dialLoop()
 		go func() {
 			// TODO: hard code
 			var buf = make([]byte, 16)
