@@ -77,6 +77,7 @@ jobs:
         set -eux
         ./piping-tunnel -s http://localhost:8080 server -p 2022 aaa bbb &
         ./piping-tunnel -s http://localhost:8080 client -p 3322 aaa bbb &
+        sleep 1
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
 
@@ -86,6 +87,7 @@ jobs:
         socat UNIX-LISTEN:/tmp/my_nginx_socat TCP:localhost:8888 &
         ./piping-tunnel -s http://localhost:8080 server --unix-socket=/tmp/my_nginx_socat aaa bbb &
         ./piping-tunnel -s http://localhost:8080 client -p 8889 aaa bbb &
+        sleep 1
         curl localhost:8889
 
     - name: Unix socket on client host side
@@ -93,6 +95,7 @@ jobs:
         set -eux
         ./piping-tunnel -s http://localhost:8080 server -p 8888 aaa bbb &
         ./piping-tunnel -s http://localhost:8080 client --unix-socket=/tmp/my_unginx aaa bbb &
+        sleep 1
         curl --unix-socket /tmp/my_unginx http:/index.html
 
     - name: Encrypt with AES-CTR
@@ -100,6 +103,7 @@ jobs:
         set -eux
         ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
         ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
+        sleep 1
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
 
@@ -110,6 +114,7 @@ jobs:
         ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux aaa-yamux bbb-yamux & echo $! > pid1
         # Run client-host with yamux
         ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux aaa-yamux bbb-yamux & echo $! > pid2
+        sleep 1
         # Check whether ssh multiple times
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost hostname
@@ -123,6 +128,7 @@ jobs:
         ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-yamux bbb-yamux & echo $! > pid1
         # Run client-host with yamux (encrypt with AES-CTR)
         ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-yamux bbb-yamux & echo $! > pid2
+        sleep 1
         # Check whether ssh multiple times
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost hostname
@@ -136,6 +142,7 @@ jobs:
         ./piping-tunnel -s http://localhost:8080 socks --yamux aaa-socks bbb-socks & echo $! > pid1
         # Run client-host with yamux
         ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux aaa-socks bbb-socks & echo $! > pid2
+        sleep 1
         # NOTE: Depends on external resource: example.com
         curl -x socks5h://localhost:1081 https://example.com
         kill $(cat pid1) && kill $(cat pid2)
@@ -147,6 +154,7 @@ jobs:
         ./piping-tunnel -s http://localhost:8080 socks --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid1
         # Run client-host with yamux (encrypt with AES-CTR)
         ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid2
+        sleep 1
         # NOTE: Depends on external resource: example.com
         curl -x socks5h://localhost:1081 https://example.com
         kill $(cat pid1) && kill $(cat pid2)
@@ -161,6 +169,7 @@ jobs:
         /piping-tunnel -s http://localhost:8080 client -p 5522 --pmux aaa-pmux bbb-pmux & echo $! > pid2
         # Run client-host2 with pmux
         ./piping-tunnel -s http://localhost:8080 client -p 6622 --pmux aaa-pmux bbb-pmux & echo $! > pid3
+        sleep 1
         # Check whether ssh multiple times
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 5522 -o 'StrictHostKeyChecking no' guest@localhost hostname
