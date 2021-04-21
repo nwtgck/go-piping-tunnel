@@ -91,6 +91,7 @@ Flags:
       --pmux-config string   pmux config in JSON (experimental) (default "{\"hb\": true}")
   -p, --port int             TCP port of server host
   -c, --symmetric            Encrypt symmetrically
+      --unix-socket string   Unix socket of server host
       --yamux                Multiplex connection by hashicorp/yamux
 
 Global Flags:
@@ -120,6 +121,7 @@ Flags:
   -p, --port int             TCP port of client host
       --sc-buf-size uint     Buffer size of server-to-client in bytes (default 16)
   -c, --symmetric            Encrypt symmetrically
+      --unix-socket string   Unix socket of client host
       --yamux                Multiplex connection by hashicorp/yamux
 
 Global Flags:
