@@ -55,11 +55,11 @@ jobs:
         EOS
     - name: Run SSH Server
       run: docker run -d -p 2022:22 --init ssh-server
-    - name: Wait for running SSH server
-      run: sleep 3
+    - name: Run Nginx
+      run: docker run -d -p 8888:80 nginx:alpine
     - name: Run Piping Server
       run: docker run -d -p 8080:8080 nwtgck/piping-server:v1.2.0
-    - name: Wait for running Piping server
+    - name: Wait for running servers
       run: sleep 3
     - uses: actions/checkout@v2
     - name: Set up Go 1.x
@@ -73,6 +73,11 @@ jobs:
     - run: ./piping-tunnel -s http://localhost:8080 client -p 3322 aaa bbb &
     # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
     - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
+
+    # Unix socket on client host side
+    - run: ./piping-tunnel server -p 8888 aaa bbb &
+    - run: ./piping-tunnel client --unix-socket=/tmp/my_unginx aaa bbb
+    - run: curl --unix-socket /tmp/my_unginx http:/index.html
 
     # Encrypt with AES-CTR
     - run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
