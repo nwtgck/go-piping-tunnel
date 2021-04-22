@@ -106,6 +106,11 @@ func (s *server) sendVersionAndConfigLoop() {
 			continue
 		}
 		postRes, err := piping_util.PipingSendWithContext(ctx, s.httpClient, headersWithPmux(s.headers), s.baseUploadUrl, bytes.NewReader(append(pmuxVersionBytes[:], configJsonBytes...)))
+		if postRes.StatusCode != 200 {
+			// backoff
+			time.Sleep(b.NextDuration())
+			continue
+		}
 		// If timeout
 		if util.IsTimeoutErr(err) {
 			// reset backoff
