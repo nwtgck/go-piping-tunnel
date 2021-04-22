@@ -235,6 +235,11 @@ func (c *client) checkServerVersionAndConfig() error {
 			time.Sleep(b.NextDuration())
 			continue
 		}
+		if postRes.StatusCode != 200 {
+			// backoff
+			time.Sleep(b.NextDuration())
+			continue
+		}
 		if postRes.Header.Get("Content-Type") != pmuxMimeType {
 			return NonPmuxMimeTypeError
 		}
