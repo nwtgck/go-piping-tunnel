@@ -163,6 +163,7 @@ jobs:
         set -eux
         # Run server-host1 with pmux
         ./piping-tunnel -s http://localhost:8080 server -p 2022 --pmux aaa-pmux bbb-pmux & echo $! > pid1
+        sleep 1
         # pmux allows multiple clients in one set of paths
         # Run client-host1 with pmux
         ./piping-tunnel -s http://localhost:8080 client -p 5522 --pmux aaa-pmux bbb-pmux & echo $! > pid2
