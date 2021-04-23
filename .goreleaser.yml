@@ -29,7 +29,7 @@ nfpms:
   - license: MIT
     maintainer: Ryo Ota <nwtgck@nwtgck.org>
     homepage: https://github.com/nwtgck/go-piping-tunnel
-    description: "Tunnel over HTTP with Piping Server"
+    description: "Tunneling from anywhere with Piping Server"
     formats:
       - rpm
       - deb
@@ -46,4 +46,4 @@ brews:
       owner: nwtgck
       name: homebrew-piping-tunnel
     homepage: "https://github.com/nwtgck/go-piping-tunnel"
-    description: "Tunnel over HTTP with Piping Server"
+    description: "Tunneling from anywhere with Piping Server"

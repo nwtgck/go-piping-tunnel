@@ -19,6 +19,7 @@ var showProgress bool
 var headerKeyValueStrs []string
 var httpWriteBufSize int
 var httpReadBufSize int
+var verboseLoggerLevel int
 
 func init() {
 	cobra.OnInitialize()
@@ -35,12 +36,13 @@ func init() {
 	RootCmd.PersistentFlags().IntVarP(&httpReadBufSize, "http-read-buf-size", "", 16, "HTTP read-buffer size in bytes")
 	RootCmd.PersistentFlags().BoolVarP(&showProgress, "progress", "", true, "Show progress")
 	RootCmd.Flags().BoolVarP(&showsVersion, "version", "v", false, "show version")
+	RootCmd.PersistentFlags().IntVarP(&verboseLoggerLevel, "verbose", "", 0, "Verbose logging level")
 }
 
 var RootCmd = &cobra.Command{
 	Use:          os.Args[0],
 	Short:        "piping-tunnel",
-	Long:         "Tunnel over Piping Server",
+	Long:         "Tunneling from anywhere with Piping Server",
 	SilenceUsage: true,
 	Example: fmt.Sprintf(`
 Normal:
@@ -48,14 +50,14 @@ Normal:
   piping-tunnel client -p 1022 aaa bbb
 
 Short:
-  piping-tunnel server -p 22 aaa
-  piping-tunnel client -p 1022 aaa
+  piping-tunnel server -p 22 mypath
+  piping-tunnel client -p 1022 mypath
 
 Multiplexing:
   piping-tunnel server -p 22 --yamux aaa bbb
   piping-tunnel client -p 1022 --yamux aaa bbb
 
-SOCKS5 like VPN:
+SOCKS proxy like VPN:
   piping-tunnel socks --yamux aaa bbb
   piping-tunnel client -p 1080 --yamux aaa bbb
 
@@ -68,5 +70,8 @@ Environment variable:
 			return nil
 		}
 		return cmd.Help()
+	},
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		vlog.Level = verboseLoggerLevel
 	},
 }

@@ -1,35 +1,45 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/yamux"
-	"github.com/nwtgck/go-piping-tunnel/io_progress"
-	piping_tunnel_util "github.com/nwtgck/go-piping-tunnel/piping-tunnel-util"
+	"github.com/nwtgck/go-piping-tunnel/backoff"
+	"github.com/nwtgck/go-piping-tunnel/piping_util"
+	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"strings"
+	"time"
 )
 
+var serverTargetHost string
 var serverHostPort int
+var serverHostUnixSocket string
 var serverClientToServerBufSize uint
 var serverYamux bool
+var serverPmux bool
+var serverPmuxConfig string
 var serverSymmetricallyEncrypts bool
 var serverSymmetricallyEncryptPassphrase string
 var serverCipherType string
 
 func init() {
 	RootCmd.AddCommand(serverCmd)
+	serverCmd.Flags().StringVarP(&serverTargetHost, "host", "", "localhost", "Target host")
 	serverCmd.Flags().IntVarP(&serverHostPort, "port", "p", 0, "TCP port of server host")
-	serverCmd.MarkFlagRequired("port")
-	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "c-to-s-buf-size", "", 16, "Buffer size of client-to-server in bytes")
+	serverCmd.Flags().StringVarP(&serverHostUnixSocket, "unix-socket", "", "", "Unix socket of server host")
+	serverCmd.Flags().UintVarP(&serverClientToServerBufSize, "cs-buf-size", "", 16, "Buffer size of client-to-server in bytes")
 	serverCmd.Flags().BoolVarP(&serverYamux, yamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
+	serverCmd.Flags().BoolVarP(&serverPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
+	serverCmd.Flags().StringVarP(&serverPmuxConfig, pmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
 	serverCmd.Flags().BoolVarP(&serverSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	serverCmd.Flags().StringVarP(&serverSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
-	serverCmd.Flags().StringVarP(&serverCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", cipherTypeAesCtr, cipherTypeOpenpgp))
+	serverCmd.Flags().StringVarP(&serverCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpenpgp))
 }
 
 var serverCmd = &cobra.Command{
@@ -46,7 +56,7 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		headers, err := piping_tunnel_util.ParseKeyValueStrings(headerKeyValueStrs)
+		headers, err := piping_util.ParseKeyValueStrings(headerKeyValueStrs)
 		if err != nil {
 			return err
 		}
@@ -78,14 +88,25 @@ var serverCmd = &cobra.Command{
 			return serverHandleWithYamux(httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
 
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
+		// If pmux is enabled
+		if serverPmux {
+			fmt.Println("[INFO] Multiplexing with pmux")
+			return serverHandleWithPmux(httpClient, headers, clientToServerUrl, serverToClientUrl)
+		}
+
+		conn, err := serverHostDial()
 		if err != nil {
 			return err
 		}
 		defer conn.Close()
 		// If encryption is enabled
 		if serverSymmetricallyEncrypts {
-			duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
+			var duplex io.ReadWriteCloser
+			duplex, err := piping_util.DuplexConnect(httpClient, headers, serverToClientUrl, clientToServerUrl)
+			if err != nil {
+				return err
+			}
+			duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
 			if err != nil {
 				return err
 			}
@@ -104,44 +125,7 @@ var serverCmd = &cobra.Command{
 			}()
 			return util.CombineErrors(<-fin, <-fin)
 		}
-		var progress *io_progress.IOProgress = nil
-		if showProgress {
-			progress = io_progress.NewIOProgress(conn, conn, os.Stderr, makeProgressMessage)
-		}
-		var reader io.Reader = conn
-		if progress != nil {
-			reader = progress
-		}
-		req, err := http.NewRequest("POST", serverToClientUrl, reader)
-		if err != nil {
-			return err
-		}
-		req.Header.Set("Content-Type", "application/octet-stream")
-		for _, kv := range headers {
-			req.Header.Set(kv.Key, kv.Value)
-		}
-		_, err = httpClient.Do(req)
-		if err != nil {
-			return err
-		}
-
-		req, err = http.NewRequest("GET", clientToServerUrl, nil)
-		if err != nil {
-			return err
-		}
-		for _, kv := range headers {
-			req.Header.Set(kv.Key, kv.Value)
-		}
-		res, err := httpClient.Do(req)
-		if err != nil {
-			return err
-		}
-		var writer io.Writer = conn
-		if progress != nil {
-			writer = progress
-		}
-		var buf = make([]byte, serverClientToServerBufSize)
-		_, err = io.CopyBuffer(writer, res.Body, buf)
+		err = piping_util.HandleDuplex(httpClient, conn, headers, serverToClientUrl, clientToServerUrl, serverClientToServerBufSize, nil, showProgress, makeProgressMessage)
 		fmt.Println()
 		if err != nil {
 			return err
@@ -152,8 +136,16 @@ var serverCmd = &cobra.Command{
 	},
 }
 
+func serverHostDial() (net.Conn, error) {
+	if serverHostUnixSocket == "" {
+		return net.Dial("tcp", fmt.Sprintf("%s:%d", serverTargetHost, serverHostPort))
+	} else {
+		return net.Dial("unix", serverHostUnixSocket)
+	}
+}
+
 func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
-	if !serverYamux {
+	if !serverYamux && !serverPmux {
 		fmt.Println("[INFO] Hint: Client host (socat + curl)")
 		fmt.Printf(
 			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
@@ -171,6 +163,9 @@ func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, 
 	if serverYamux {
 		flags += fmt.Sprintf("--%s ", yamuxFlagLongName)
 	}
+	if serverPmux {
+		flags += fmt.Sprintf("--%s ", pmuxFlagLongName)
+	}
 	fmt.Println("[INFO] Hint: Client host (piping-tunnel)")
 	fmt.Printf(
 		"  piping-tunnel -s %s client -p 31376 %s%s %s\n",
@@ -181,8 +176,29 @@ func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, 
 	)
 }
 
-func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	duplex, err := makeDuplexWithEncryptionAndProgressIfNeed(httpClient, headers, serverToClientUrl, clientToServerUrl, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
+func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+	var duplex io.ReadWriteCloser
+	duplex, err := piping_util.DuplexConnectWithHandlers(
+		func(body io.Reader) (*http.Response, error) {
+			return piping_util.PipingSend(httpClient, headersWithYamux(headers), serverToClientUrl, body)
+		},
+		func() (*http.Response, error) {
+			res, err := piping_util.PipingGet(httpClient, headers, clientToServerUrl)
+			if err != nil {
+				return nil, err
+			}
+			contentType := res.Header.Get("Content-Type")
+			// NOTE: application/octet-stream is for compatibility
+			if contentType != yamuxMimeType && contentType != "application/octet-stream" {
+				return nil, errors.Errorf("invalid content-type: %s", contentType)
+			}
+			return res, nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
 	if err != nil {
 		return err
 	}
@@ -195,7 +211,7 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 		if err != nil {
 			return err
 		}
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", serverHostPort))
+		conn, err := serverHostDial()
 		if err != nil {
 			return err
 		}
@@ -218,6 +234,61 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_tunnel_util
 			close(fin)
 			conn.Close()
 			yamuxStream.Close()
+		}()
+	}
+}
+
+func dialLoop() net.Conn {
+	b := backoff.NewExponentialBackoff()
+	for {
+		conn, err := serverHostDial()
+		if err != nil {
+			// backoff
+			time.Sleep(b.NextDuration())
+			continue
+		}
+		return conn
+	}
+}
+
+func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
+	var config serverPmuxConfigJson
+	if json.Unmarshal([]byte(serverPmuxConfig), &config) != nil {
+		return errors.Errorf("invalid pmux config format")
+	}
+	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, config.Hb, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
+	for {
+		stream, err := pmuxServer.Accept()
+		if err != nil {
+			return err
+		}
+		conn := dialLoop()
+		go func() {
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			_, err := io.CopyBuffer(conn, stream, buf)
+			if err != nil {
+				vlog.Log(
+					fmt.Sprintf("error(pmux stream → conn): %v", errors.WithStack(err)),
+					fmt.Sprintf("error(pmux stream → conn): %+v", errors.WithStack(err)),
+				)
+				conn.Close()
+				return
+			}
+		}()
+
+		go func() {
+			// TODO: hard code
+			var buf = make([]byte, 16)
+			_, err := io.CopyBuffer(stream, conn, buf)
+			if err != nil {
+				vlog.Log(
+					fmt.Sprintf("error(conn → pmux stream): %v", errors.WithStack(err)),
+					fmt.Sprintf("error(conn → pmux stream): %+v", errors.WithStack(err)),
+				)
+				conn.Close()
+				return
+			}
 		}()
 	}
 }

@@ -10,7 +10,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.15
+          go-version: 1.16
       - name: Build for multi-platform
         run: |
           set -xeu
@@ -31,6 +31,9 @@ jobs:
           done
   operational_test:
     runs-on: ubuntu-18.04
+    defaults:
+      run:
+        shell: bash
     steps:
     - name: Build SSH server Dockerfile
       run: |
@@ -53,69 +56,123 @@ jobs:
         RUN echo "export VISIBLE=now" >> /etc/profile
         ENTRYPOINT [ "/usr/sbin/sshd", "-D" ]
         EOS
+    - run: sudo apt install -y socat
     - name: Run SSH Server
       run: docker run -d -p 2022:22 --init ssh-server
-    - name: Wait for running SSH server
-      run: sleep 3
+    - name: Run Nginx
+      run: docker run -d -p 8888:80 nginx:alpine
     - name: Run Piping Server
-      run: docker run -d -p 8080:8080 nwtgck/piping-server:v1.1.3
-    - name: Wait for running Piping server
-      run: sleep 3
+      run: docker run -d -p 8080:8080 nwtgck/piping-server:v1.2.0
     - uses: actions/checkout@v2
     - name: Set up Go 1.x
       uses: actions/setup-go@v2
       with:
-        go-version: ^1.15
+        go-version: 1.16
     - run: CGO_ENABLED=0 go build -o piping-tunnel main/main.go
 
-    # Normal tunnel
-    - run: ./piping-tunnel -s http://localhost:8080 server -p 2022 aaa bbb &
-    - run: ./piping-tunnel -s http://localhost:8080 client -p 3322 aaa bbb &
-    # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
-    - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
+    - name: Normal tunnel
+      run: |
+        set -eux
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 aaa bbb &
+        ./piping-tunnel -s http://localhost:8080 client -p 3322 aaa bbb &
+        sleep 1
+        # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+        ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
 
-    # Encrypt with AES-CTR
-    - run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
-    - run: ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
-    # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
-    - run: ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
+    - name: Unix socket on server host side
+      run: |
+        set -eux
+        socat UNIX-LISTEN:/tmp/my_nginx_socat TCP:localhost:8888 &
+        sleep 1
+        ./piping-tunnel -s http://localhost:8080 server --unix-socket=/tmp/my_nginx_socat aaa bbb &
+        ./piping-tunnel -s http://localhost:8080 client -p 8889 aaa bbb &
+        sleep 1
+        curl localhost:8889
 
-    # Multiplexing
-    - name: Run server-host with yamux
-      run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux aaa-yamux bbb-yamux & echo $! > pid1
-    - name: Run client-host with yamux
-      run: ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux aaa-yamux bbb-yamux & echo $! > pid2
-    # Check whether ssh multiple times
-    # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
-    - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost hostname
-    - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
-    - run: kill $(cat pid1) && kill $(cat pid2)
+    - name: Unix socket on client host side
+      run: |
+        set -eux
+        ./piping-tunnel -s http://localhost:8080 server -p 8888 aaa bbb &
+        ./piping-tunnel -s http://localhost:8080 client --unix-socket=/tmp/my_unginx aaa bbb &
+        sleep 1
+        curl --unix-socket /tmp/my_unginx http:/index.html
 
-    # Multiplexing (encrypt with AES-CTR)
-    - name: Run server-host with yamux (encrypt with AES-CTR)
-      run: ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-yamux bbb-yamux & echo $! > pid1
-    - name: Run client-host with yamux (encrypt with AES-CTR)
-      run: ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-yamux bbb-yamux & echo $! > pid2
-      # Check whether ssh multiple times
-      # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
-    - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost hostname
-    - run: ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
-    - run: kill $(cat pid1) && kill $(cat pid2)
+    - name: Encrypt with AES-CTR
+      run: |
+        set -eux
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
+        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
+        sleep 1
+        # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+        ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
 
-    # SOCKS
-    - name: Run socks with yamux
-      run: ./piping-tunnel -s http://localhost:8080 socks --yamux aaa-socks bbb-socks & echo $! > pid1
-    - name: Run client-host with yamux
-      run: ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux aaa-socks bbb-socks & echo $! > pid2
-    # NOTE: Depends on external resource: example.com
-    - run: curl -x socks5h://localhost:1081 https://example.com
-    - run: kill $(cat pid1) && kill $(cat pid2)
+    - name: yamux
+      run: |
+        set -eux
+        # Run server-host with yamux
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux aaa-yamux bbb-yamux & echo $! > pid1
+        # Run client-host with yamux
+        ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux aaa-yamux bbb-yamux & echo $! > pid2
+        sleep 1
+        # Check whether ssh multiple times
+        # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+        ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost hostname
+        ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
+        kill $(cat pid1) && kill $(cat pid2)
 
-    # SOCKS (encrypt with AES-CTR)
-    - name: Run socks with yamux (encrypt with AES-CTR)
-      run: ./piping-tunnel -s http://localhost:8080 socks --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid1
-    - name: Run client-host with yamux (encrypt with AES-CTR)
-      run: ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid2
-    # NOTE: Depends on external resource: example.com
-    - run: curl -x socks5h://localhost:1081 https://example.com
-    - run: kill $(cat pid1) && kill $(cat pid2)
+    - name: yamux (encrypt with AES-CTR)
+      run: |
+        set -eux
+        # Run server-host with yamux (encrypt with AES-CTR)
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-yamux bbb-yamux & echo $! > pid1
+        # Run client-host with yamux (encrypt with AES-CTR)
+        ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-yamux bbb-yamux & echo $! > pid2
+        sleep 1
+        # Check whether ssh multiple times
+        # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+        ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost hostname
+        ssh -p 4422 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
+        kill $(cat pid1) && kill $(cat pid2)
+
+    - name: yamux SOCKS
+      run: |
+        set -eux
+        # Run socks with yamux
+        ./piping-tunnel -s http://localhost:8080 socks --yamux aaa-socks bbb-socks & echo $! > pid1
+        # Run client-host with yamux
+        ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux aaa-socks bbb-socks & echo $! > pid2
+        sleep 1
+        # NOTE: Depends on external resource: example.com
+        curl -x socks5h://localhost:1081 https://example.com
+        kill $(cat pid1) && kill $(cat pid2)
+
+    - name: yamux SOCKS (encrypt with AES-CTR)
+      run: |
+        set -eux
+        # Run socks with yamux (encrypt with AES-CTR)
+        ./piping-tunnel -s http://localhost:8080 socks --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid1
+        # Run client-host with yamux (encrypt with AES-CTR)
+        ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid2
+        sleep 1
+        # NOTE: Depends on external resource: example.com
+        curl -x socks5h://localhost:1081 https://example.com
+        kill $(cat pid1) && kill $(cat pid2)
+
+    - name: pmux
+      run: |
+        set -eux
+        # Run server-host1 with pmux
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --pmux aaa-pmux bbb-pmux & echo $! > pid1
+        sleep 1
+        # pmux allows multiple clients in one set of paths
+        # Run client-host1 with pmux
+        ./piping-tunnel -s http://localhost:8080 client -p 5522 --pmux aaa-pmux bbb-pmux & echo $! > pid2
+        # Run client-host2 with pmux
+        ./piping-tunnel -s http://localhost:8080 client -p 6622 --pmux aaa-pmux bbb-pmux & echo $! > pid3
+        sleep 2
+        # Check whether ssh multiple times
+        # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+        ssh -p 5522 -o 'StrictHostKeyChecking no' guest@localhost hostname
+        ssh -p 5522 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
+        ssh -p 6622 -o 'StrictHostKeyChecking no' guest@localhost ls -l /
+        kill $(cat pid1) && kill $(cat pid2) && kill $(cat pid3)
