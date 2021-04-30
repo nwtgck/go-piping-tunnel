@@ -49,7 +49,7 @@ var serverCmd = &cobra.Command{
 		// Validate cipher-type
 		if serverSymmetricallyEncrypts {
 			if err := validateClientCipher(serverCipherType); err != nil {
-				return nil
+				return err
 			}
 		}
 		clientToServerPath, serverToClientPath, err := generatePaths(args)

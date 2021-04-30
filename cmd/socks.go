@@ -39,7 +39,7 @@ var socksCmd = &cobra.Command{
 		// Validate cipher-type
 		if socksSymmetricallyEncrypts {
 			if err := validateClientCipher(socksCipherType); err != nil {
-				return nil
+				return err
 			}
 		}
 		clientToServerPath, serverToClientPath, err := generatePaths(args)
