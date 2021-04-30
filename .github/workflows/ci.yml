@@ -100,13 +100,11 @@ jobs:
     - name: Encrypt with AES-CTR
       run: |
         set -eux
-        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb & echo $! > pid1
-        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb & echo $! > pid2
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=aes-ctr --passphrase=mypass aesctraaa aesctrbbb &
+        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=aes-ctr --passphrase=mypass aesctraaa aesctrbbb &
         sleep 1
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
-        # FIXME: normal tunnel should be finished but not finished in ecryption
-        kill $(cat pid1) && kill $(cat pid2)
 
     - name: Encrypt with OpenSSL-compabile AES-CTR
       run: |
