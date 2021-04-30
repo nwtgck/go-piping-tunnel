@@ -119,6 +119,15 @@ jobs:
         # FIXME: normal tunnel should be finished but not finished in ecryption
         kill $(cat pid1) && kill $(cat pid2)
 
+    - name: Encrypt with OpenSSL-compabile AES-CTR using real openssl
+      run: |
+        set -eux
+        curl -sSN http://localhost:8080/aaa | stdbuf -i0 -o0 openssl aes-256-ctr -d -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | nc localhost 2022 | stdbuf -i0 -o0 openssl aes-256-ctr -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | curl -sSNT - http://localhost:8080/bbb &
+        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --passphrase=mypass aaa bbb &
+        sleep 1
+        # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+        ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
+
     - name: yamux
       run: |
         set -eux
