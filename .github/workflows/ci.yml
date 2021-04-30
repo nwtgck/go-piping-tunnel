@@ -111,19 +111,17 @@ jobs:
     - name: Encrypt with OpenSSL-compabile AES-CTR
       run: |
         set -eux
-        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --passphrase=mypass aaa bbb & echo $! > pid1
-        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --passphrase=mypass aaa bbb & echo $! > pid2
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --passphrase=mypass openssl1aaa openssl1bbb & echo $! > pid1
+        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --passphrase=mypass openssl1aaa openssl1bbb & echo $! > pid2
         sleep 1
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
-        # FIXME: normal tunnel should be finished but not finished in ecryption
-        kill $(cat pid1) && kill $(cat pid2)
 
     - name: Encrypt with OpenSSL-compabile AES-CTR using real openssl in server host
       run: |
         set -eux
-        curl -sSN http://localhost:8080/aaa | stdbuf -i0 -o0 openssl aes-256-ctr -d -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | nc localhost 2022 | stdbuf -i0 -o0 openssl aes-256-ctr -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | curl -sSNT - http://localhost:8080/bbb &
-        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --passphrase=mypass aaa bbb &
+        curl -sSN http://localhost:8080/openssl2aaa | stdbuf -i0 -o0 openssl aes-256-ctr -d -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | nc localhost 2022 | stdbuf -i0 -o0 openssl aes-256-ctr -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | curl -sSNT - http://localhost:8080/openssl2bbb &
+        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --passphrase=mypass openssl2aaa openssl2bbb &
         sleep 1
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
@@ -131,8 +129,8 @@ jobs:
     - name: Encrypt with OpenSSL-compabile AES-CTR using real openssl in client host
       run: |
         set -eux
-        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --passphrase=mypass aaa bbb &
-        curl -NsS http://localhost:8080/bbb | stdbuf -i0 -o0 openssl aes-256-ctr -d -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | nc -l -p 3322 | stdbuf -i0 -o0 openssl aes-256-ctr -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | curl -NsST - http://localhost:8080/aaa &
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --passphrase=mypass openssl3aaa openssl3bbb &
+        curl -NsS http://localhost:8080/openssl3bbb | stdbuf -i0 -o0 openssl aes-256-ctr -d -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | nc -l -p 3322 | stdbuf -i0 -o0 openssl aes-256-ctr -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | curl -NsST - http://localhost:8080/openssl3aaa &
         sleep 1
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
