@@ -21,26 +21,26 @@ import (
 	"time"
 )
 
-const defaultCipherType = piping_util.CipherTypeAesCtr
+const DefaultCipherType = piping_util.CipherTypeAesCtr
 
 const (
-	yamuxFlagLongName                          = "yamux"
-	pmuxFlagLongName                           = "pmux"
-	pmuxConfigFlagLongName                     = "pmux-config"
-	symmetricallyEncryptsFlagLongName          = "symmetric"
-	symmetricallyEncryptsFlagShortName         = "c"
-	symmetricallyEncryptPassphraseFlagLongName = "passphrase"
-	cipherTypeFlagLongName                     = "cipher-type"
-	pbkdf2FlagLongName                         = "pbkdf2"
+	YamuxFlagLongName                          = "yamux"
+	PmuxFlagLongName                           = "pmux"
+	PmuxConfigFlagLongName                     = "pmux-config"
+	SymmetricallyEncryptsFlagLongName          = "symmetric"
+	SymmetricallyEncryptsFlagShortName         = "c"
+	SymmetricallyEncryptPassphraseFlagLongName = "passphrase"
+	CipherTypeFlagLongName                     = "cipher-type"
+	Pbkdf2FlagLongName                         = "pbkdf2"
 )
 
-const yamuxMimeType = "application/yamux"
+const YamuxMimeType = "application/yamux"
 
-type serverPmuxConfigJson struct {
+type ServerPmuxConfigJson struct {
 	Hb bool `json:"hb"`
 }
 
-type clientPmuxConfigJson struct {
+type ClientPmuxConfigJson struct {
 	Hb bool `json:"hb"`
 }
 
@@ -54,13 +54,13 @@ type pbkdf2Config struct {
 	Hash func() hash.Hash
 }
 
-var vlog *verbose_logger.Logger
+var Vlog *verbose_logger.Logger
 
 func init() {
-	vlog = &verbose_logger.Logger{}
+	Vlog = &verbose_logger.Logger{}
 }
 
-func validateClientCipher(str string) error {
+func ValidateClientCipher(str string) error {
 	switch str {
 	case piping_util.CipherTypeAesCtr:
 		return nil
@@ -91,7 +91,7 @@ func validateHashFunctionName(str string) (func() hash.Hash, error) {
 func parsePbkdf2(str string) (*pbkdf2Config, error) {
 	var configJson pbkdf2ConfigJson
 	if json.Unmarshal([]byte(str), &configJson) != nil {
-		return nil, errors.Errorf("invalid pbkdf2 JSON format: e.g. --%s='%s'", pbkdf2FlagLongName, examplePbkdf2JsonStr())
+		return nil, errors.Errorf("invalid pbkdf2 JSON format: e.g. --%s='%s'", Pbkdf2FlagLongName, ExamplePbkdf2JsonStr())
 	}
 	h, err := validateHashFunctionName(configJson.Hash)
 	if err != nil {
@@ -100,7 +100,7 @@ func parsePbkdf2(str string) (*pbkdf2Config, error) {
 	return &pbkdf2Config{Iter: configJson.Iter, Hash: h}, nil
 }
 
-func examplePbkdf2JsonStr() string {
+func ExamplePbkdf2JsonStr() string {
 	b, err := json.Marshal(&pbkdf2ConfigJson{Iter: 100000, Hash: "sha256"})
 	if err != nil {
 		panic(err)
@@ -108,7 +108,7 @@ func examplePbkdf2JsonStr() string {
 	return string(b)
 }
 
-func generatePaths(args []string) (string, string, error) {
+func GeneratePaths(args []string) (string, string, error) {
 	var clientToServerPath string
 	var serverToClientPath string
 
@@ -127,7 +127,7 @@ func generatePaths(args []string) (string, string, error) {
 	return clientToServerPath, serverToClientPath, nil
 }
 
-func makeProgressMessage(progress *io_progress.IOProgress) string {
+func MakeProgressMessage(progress *io_progress.IOProgress) string {
 	return fmt.Sprintf(
 		"↑ %s (%s/s) | ↓ %s (%s/s)",
 		util.HumanizeBytes(float64(progress.CurrReadBytes)),
@@ -137,7 +137,7 @@ func makeProgressMessage(progress *io_progress.IOProgress) string {
 	)
 }
 
-func makeUserInputPassphraseIfEmpty(passphrase *string) (err error) {
+func MakeUserInputPassphraseIfEmpty(passphrase *string) (err error) {
 	// If the passphrase is empty
 	if *passphrase == "" {
 		// Get user-input passphrase
@@ -147,7 +147,7 @@ func makeUserInputPassphraseIfEmpty(passphrase *string) (err error) {
 	return nil
 }
 
-func makeDuplexWithEncryptionAndProgressIfNeed(duplex io.ReadWriteCloser, encrypts bool, passphrase string, cipherType string, pbkdf2JsonStr string) (io.ReadWriteCloser, error) {
+func MakeDuplexWithEncryptionAndProgressIfNeed(duplex io.ReadWriteCloser, encrypts bool, passphrase string, cipherType string, pbkdf2JsonStr string) (io.ReadWriteCloser, error) {
 	var err error
 	// If encryption is enabled
 	if encrypts {
@@ -182,12 +182,12 @@ func makeDuplexWithEncryptionAndProgressIfNeed(duplex io.ReadWriteCloser, encryp
 		}
 		fmt.Printf("[INFO] End-to-end encryption with %s\n", cipherName)
 	}
-	if showProgress {
-		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, makeProgressMessage)
+	if ShowProgress {
+		duplex = io_progress.NewIOProgress(duplex, duplex, os.Stderr, MakeProgressMessage)
 	}
 	return duplex, nil
 }
 
-func headersWithYamux(headers []piping_util.KeyValue) []piping_util.KeyValue {
-	return append(headers, piping_util.KeyValue{Key: "Content-Type", Value: yamuxMimeType})
+func HeadersWithYamux(headers []piping_util.KeyValue) []piping_util.KeyValue {
+	return append(headers, piping_util.KeyValue{Key: "Content-Type", Value: YamuxMimeType})
 }

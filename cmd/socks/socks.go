@@ -1,9 +1,10 @@
-package cmd
+package socks
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/yamux"
+	"github.com/nwtgck/go-piping-tunnel/cmd"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
 	"github.com/nwtgck/go-piping-tunnel/pmux"
 	"github.com/nwtgck/go-piping-tunnel/util"
@@ -24,44 +25,44 @@ var socksCipherType string
 var socksPbkdf2JsonString string
 
 func init() {
-	RootCmd.AddCommand(socksCmd)
+	cmd.RootCmd.AddCommand(socksCmd)
 	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
-	socksCmd.Flags().BoolVarP(&socksPmux, pmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
-	socksCmd.Flags().StringVarP(&socksPmuxConfig, pmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
-	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
-	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
-	socksCmd.Flags().StringVarP(&socksCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s, %s, %s ", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpensslAes128Ctr, piping_util.CipherTypeOpensslAes256Ctr, piping_util.CipherTypeOpenpgp))
-	socksCmd.Flags().StringVarP(&socksPbkdf2JsonString, pbkdf2FlagLongName, "", "", fmt.Sprintf("e.g. %s", examplePbkdf2JsonStr()))
+	socksCmd.Flags().BoolVarP(&socksPmux, cmd.PmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
+	socksCmd.Flags().StringVarP(&socksPmuxConfig, cmd.PmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
+	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, cmd.SymmetricallyEncryptsFlagLongName, cmd.SymmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
+	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, cmd.SymmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
+	socksCmd.Flags().StringVarP(&socksCipherType, cmd.CipherTypeFlagLongName, "", cmd.DefaultCipherType, fmt.Sprintf("Cipher type: %s, %s, %s, %s ", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpensslAes128Ctr, piping_util.CipherTypeOpensslAes256Ctr, piping_util.CipherTypeOpenpgp))
+	socksCmd.Flags().StringVarP(&socksPbkdf2JsonString, cmd.Pbkdf2FlagLongName, "", "", fmt.Sprintf("e.g. %s", cmd.ExamplePbkdf2JsonStr()))
 }
 
 var socksCmd = &cobra.Command{
 	Use:   "socks",
 	Short: "Run SOCKS server",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		// Validate cipher-type
 		if socksSymmetricallyEncrypts {
-			if err := validateClientCipher(socksCipherType); err != nil {
+			if err := cmd.ValidateClientCipher(socksCipherType); err != nil {
 				return err
 			}
 		}
-		clientToServerPath, serverToClientPath, err := generatePaths(args)
+		clientToServerPath, serverToClientPath, err := cmd.GeneratePaths(args)
 		if err != nil {
 			return err
 		}
-		headers, err := piping_util.ParseKeyValueStrings(headerKeyValueStrs)
+		headers, err := piping_util.ParseKeyValueStrings(cmd.HeaderKeyValueStrs)
 		if err != nil {
 			return err
 		}
-		httpClient := util.CreateHttpClient(insecure, httpWriteBufSize, httpReadBufSize)
-		if dnsServer != "" {
+		httpClient := util.CreateHttpClient(cmd.Insecure, cmd.HttpWriteBufSize, cmd.HttpReadBufSize)
+		if cmd.DnsServer != "" {
 			// Set DNS resolver
-			httpClient.Transport.(*http.Transport).DialContext = util.CreateDialContext(dnsServer)
+			httpClient.Transport.(*http.Transport).DialContext = util.CreateDialContext(cmd.DnsServer)
 		}
-		serverToClientUrl, err := util.UrlJoin(serverUrl, serverToClientPath)
+		serverToClientUrl, err := util.UrlJoin(cmd.ServerUrl, serverToClientPath)
 		if err != nil {
 			return err
 		}
-		clientToServerUrl, err := util.UrlJoin(serverUrl, clientToServerPath)
+		clientToServerUrl, err := util.UrlJoin(cmd.ServerUrl, clientToServerPath)
 		if err != nil {
 			return err
 		}
@@ -69,7 +70,7 @@ var socksCmd = &cobra.Command{
 		socksPrintHintForClientHost(clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
 		// Make user input passphrase if it is empty
 		if socksSymmetricallyEncrypts {
-			err = makeUserInputPassphraseIfEmpty(&socksSymmetricallyEncryptPassphrase)
+			err = cmd.MakeUserInputPassphraseIfEmpty(&socksSymmetricallyEncryptPassphrase)
 			if err != nil {
 				return err
 			}
@@ -77,7 +78,7 @@ var socksCmd = &cobra.Command{
 
 		// If not using multiplexer
 		if !socksYamux && !socksPmux {
-			return errors.Errorf("--%s or --%s must be specified", yamuxFlagLongName, pmuxFlagLongName)
+			return errors.Errorf("--%s or --%s must be specified", cmd.YamuxFlagLongName, cmd.PmuxFlagLongName)
 		}
 
 		socksConf := &socks.Config{}
@@ -106,21 +107,21 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 	}
 	flags := ""
 	if socksSymmetricallyEncrypts {
-		flags += fmt.Sprintf("-%s ", symmetricallyEncryptsFlagShortName)
-		if socksCipherType != defaultCipherType {
-			flags += fmt.Sprintf("--%s=%s ", cipherTypeFlagLongName, socksCipherType)
+		flags += fmt.Sprintf("-%s ", cmd.SymmetricallyEncryptsFlagShortName)
+		if socksCipherType != cmd.DefaultCipherType {
+			flags += fmt.Sprintf("--%s=%s ", cmd.CipherTypeFlagLongName, socksCipherType)
 		}
 	}
 	if socksYamux {
-		flags += fmt.Sprintf("--%s ", yamuxFlagLongName)
+		flags += fmt.Sprintf("--%s ", cmd.YamuxFlagLongName)
 	}
 	if socksPmux {
-		flags += fmt.Sprintf("--%s ", pmuxFlagLongName)
+		flags += fmt.Sprintf("--%s ", cmd.PmuxFlagLongName)
 	}
 	fmt.Println("[INFO] Hint: Client host (piping-tunnel)")
 	fmt.Printf(
 		"  piping-tunnel -s %s client -p 1080 %s%s %s\n",
-		serverUrl,
+		cmd.ServerUrl,
 		flags,
 		clientToServerPath,
 		serverToClientPath,
@@ -131,7 +132,7 @@ func socksHandleWithYamux(socksServer *socks.Server, httpClient *http.Client, he
 	var duplex io.ReadWriteCloser
 	duplex, err := piping_util.DuplexConnectWithHandlers(
 		func(body io.Reader) (*http.Response, error) {
-			return piping_util.PipingSend(httpClient, headersWithYamux(headers), serverToClientUrl, body)
+			return piping_util.PipingSend(httpClient, cmd.HeadersWithYamux(headers), serverToClientUrl, body)
 		},
 		func() (*http.Response, error) {
 			res, err := piping_util.PipingGet(httpClient, headers, clientToServerUrl)
@@ -140,13 +141,13 @@ func socksHandleWithYamux(socksServer *socks.Server, httpClient *http.Client, he
 			}
 			contentType := res.Header.Get("Content-Type")
 			// NOTE: application/octet-stream is for compatibility
-			if contentType != yamuxMimeType && contentType != "application/octet-stream" {
+			if contentType != cmd.YamuxMimeType && contentType != "application/octet-stream" {
 				return nil, errors.Errorf("invalid content-type: %s", contentType)
 			}
 			return res, nil
 		},
 	)
-	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType, socksPbkdf2JsonString)
+	duplex, err = cmd.MakeDuplexWithEncryptionAndProgressIfNeed(duplex, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType, socksPbkdf2JsonString)
 	if err != nil {
 		return err
 	}
@@ -164,7 +165,7 @@ func socksHandleWithYamux(socksServer *socks.Server, httpClient *http.Client, he
 }
 
 func socksHandleWithPmux(socksServer *socks.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
-	var config serverPmuxConfigJson
+	var config cmd.ServerPmuxConfigJson
 	if json.Unmarshal([]byte(socksPmuxConfig), &config) != nil {
 		return errors.Errorf("invalid pmux config format")
 	}
@@ -177,7 +178,7 @@ func socksHandleWithPmux(socksServer *socks.Server, httpClient *http.Client, hea
 		go func() {
 			err := socksServer.ServeConn(util.NewDuplexConn(stream))
 			if err != nil {
-				vlog.Log(
+				cmd.Vlog.Log(
 					fmt.Sprintf("error(serve conn): %v", errors.WithStack(err)),
 					fmt.Sprintf("error(serve conn): %+v", errors.WithStack(err)),
 				)

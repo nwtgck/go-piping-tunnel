@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/nwtgck/go-piping-tunnel/cmd"
+	_ "github.com/nwtgck/go-piping-tunnel/cmd/client"
+	_ "github.com/nwtgck/go-piping-tunnel/cmd/server"
+	_ "github.com/nwtgck/go-piping-tunnel/cmd/socks"
 	"os"
 )
 

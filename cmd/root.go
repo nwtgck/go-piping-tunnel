@@ -11,14 +11,14 @@ const (
 	ServerUrlEnvName = "PIPING_SERVER"
 )
 
-var serverUrl string
-var insecure bool
-var dnsServer string
+var ServerUrl string
+var Insecure bool
+var DnsServer string
 var showsVersion bool
-var showProgress bool
-var headerKeyValueStrs []string
-var httpWriteBufSize int
-var httpReadBufSize int
+var ShowProgress bool
+var HeaderKeyValueStrs []string
+var HttpWriteBufSize int
+var HttpReadBufSize int
 var verboseLoggerLevel int
 
 func init() {
@@ -27,14 +27,14 @@ func init() {
 	if !ok {
 		defaultServer = "https://ppng.io"
 	}
-	RootCmd.PersistentFlags().StringVarP(&serverUrl, "server", "s", defaultServer, "Piping Server URL")
-	RootCmd.PersistentFlags().StringVar(&dnsServer, "dns-server", "", "DNS server (e.g. 1.1.1.1:53)")
+	RootCmd.PersistentFlags().StringVarP(&ServerUrl, "server", "s", defaultServer, "Piping Server URL")
+	RootCmd.PersistentFlags().StringVar(&DnsServer, "dns-server", "", "DNS server (e.g. 1.1.1.1:53)")
 	// NOTE: --insecure, -k is inspired by curl
-	RootCmd.PersistentFlags().BoolVarP(&insecure, "insecure", "k", false, "Allow insecure server connections when using SSL")
-	RootCmd.PersistentFlags().StringArrayVarP(&headerKeyValueStrs, "header", "H", []string{}, "HTTP header")
-	RootCmd.PersistentFlags().IntVarP(&httpWriteBufSize, "http-write-buf-size", "", 16, "HTTP write-buffer size in bytes")
-	RootCmd.PersistentFlags().IntVarP(&httpReadBufSize, "http-read-buf-size", "", 16, "HTTP read-buffer size in bytes")
-	RootCmd.PersistentFlags().BoolVarP(&showProgress, "progress", "", true, "Show progress")
+	RootCmd.PersistentFlags().BoolVarP(&Insecure, "insecure", "k", false, "Allow insecure server connections when using SSL")
+	RootCmd.PersistentFlags().StringArrayVarP(&HeaderKeyValueStrs, "header", "H", []string{}, "HTTP header")
+	RootCmd.PersistentFlags().IntVarP(&HttpWriteBufSize, "http-write-buf-size", "", 16, "HTTP write-buffer size in bytes")
+	RootCmd.PersistentFlags().IntVarP(&HttpReadBufSize, "http-read-buf-size", "", 16, "HTTP read-buffer size in bytes")
+	RootCmd.PersistentFlags().BoolVarP(&ShowProgress, "progress", "", true, "Show progress")
 	RootCmd.Flags().BoolVarP(&showsVersion, "version", "v", false, "show version")
 	RootCmd.PersistentFlags().IntVarP(&verboseLoggerLevel, "verbose", "", 0, "Verbose logging level")
 }
@@ -72,6 +72,6 @@ Environment variable:
 		return cmd.Help()
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		vlog.Level = verboseLoggerLevel
+		Vlog.Level = verboseLoggerLevel
 	},
 }
