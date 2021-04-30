@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
+	"github.com/nwtgck/go-piping-tunnel/aes_ctr_duplex"
 	"github.com/nwtgck/go-piping-tunnel/io_progress"
 	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
 	"github.com/nwtgck/go-piping-tunnel/piping_util"
@@ -100,7 +100,7 @@ func makeDuplexWithEncryptionAndProgressIfNeed(duplex io.ReadWriteCloser, encryp
 		switch cipherType {
 		case piping_util.CipherTypeAesCtr:
 			// Encrypt with AES-CTR
-			duplex, err = crypto_duplex.EncryptDuplexWithAesCtr(duplex, duplex, []byte(passphrase))
+			duplex, err = aes_ctr_duplex.Duplex(duplex, duplex, []byte(passphrase))
 			cipherName = "AES-CTR"
 		case piping_util.CipherTypeOpenpgp:
 			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(passphrase))
