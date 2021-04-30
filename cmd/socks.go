@@ -21,6 +21,7 @@ var socksPmuxConfig string
 var socksSymmetricallyEncrypts bool
 var socksSymmetricallyEncryptPassphrase string
 var socksCipherType string
+var socksPbkdf2JsonString string
 
 func init() {
 	RootCmd.AddCommand(socksCmd)
@@ -29,7 +30,8 @@ func init() {
 	socksCmd.Flags().StringVarP(&socksPmuxConfig, pmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
 	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
-	socksCmd.Flags().StringVarP(&socksCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpenpgp))
+	socksCmd.Flags().StringVarP(&socksCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s, %s, %s ", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpensslAes128Ctr, piping_util.CipherTypeOpensslAes256Ctr, piping_util.CipherTypeOpenpgp))
+	socksCmd.Flags().StringVarP(&socksPbkdf2JsonString, pbkdf2FlagLongName, "", "", fmt.Sprintf("e.g. %s", examplePbkdf2JsonStr()))
 }
 
 var socksCmd = &cobra.Command{
@@ -144,7 +146,7 @@ func socksHandleWithYamux(socksServer *socks.Server, httpClient *http.Client, he
 			return res, nil
 		},
 	)
-	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
+	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType, socksPbkdf2JsonString)
 	if err != nil {
 		return err
 	}
