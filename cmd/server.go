@@ -27,6 +27,7 @@ var serverPmuxConfig string
 var serverSymmetricallyEncrypts bool
 var serverSymmetricallyEncryptPassphrase string
 var serverCipherType string
+var serverPbkdf2JsonString string
 
 func init() {
 	RootCmd.AddCommand(serverCmd)
@@ -39,7 +40,8 @@ func init() {
 	serverCmd.Flags().StringVarP(&serverPmuxConfig, pmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
 	serverCmd.Flags().BoolVarP(&serverSymmetricallyEncrypts, symmetricallyEncryptsFlagLongName, symmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
 	serverCmd.Flags().StringVarP(&serverSymmetricallyEncryptPassphrase, symmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
-	serverCmd.Flags().StringVarP(&serverCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpenpgp))
+	serverCmd.Flags().StringVarP(&serverCipherType, cipherTypeFlagLongName, "", defaultCipherType, fmt.Sprintf("Cipher type: %s, %s, %s, %s ", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpensslAes128Ctr, piping_util.CipherTypeOpensslAes256Ctr, piping_util.CipherTypeOpenpgp))
+	serverCmd.Flags().StringVarP(&serverPbkdf2JsonString, pbkdf2FlagLongName, "", "", fmt.Sprintf("e.g. %s", examplePbkdf2JsonStr()))
 }
 
 var serverCmd = &cobra.Command{
@@ -106,7 +108,7 @@ var serverCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
+			duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType, serverPbkdf2JsonString)
 			if err != nil {
 				return err
 			}
@@ -198,7 +200,7 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyVal
 	if err != nil {
 		return err
 	}
-	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType)
+	duplex, err = makeDuplexWithEncryptionAndProgressIfNeed(duplex, serverSymmetricallyEncrypts, serverSymmetricallyEncryptPassphrase, serverCipherType, serverPbkdf2JsonString)
 	if err != nil {
 		return err
 	}

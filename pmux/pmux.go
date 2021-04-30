@@ -196,6 +196,7 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 			duplex, err = aes_ctr_duplex.Duplex(duplex, duplex, []byte(s.passphrase))
 		case piping_util.CipherTypeOpenpgp:
 			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(s.passphrase))
+		// NOTE: pmux does not support openssl-compatible encryption
 		default:
 			return nil, errors.Errorf("unexpected cipher type: %s", s.cipherType)
 		}
@@ -332,6 +333,7 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 			duplex, err = aes_ctr_duplex.Duplex(duplex, duplex, []byte(c.passphrase))
 		case piping_util.CipherTypeOpenpgp:
 			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(c.passphrase))
+		// NOTE: pmux does not support openssl-compatible encryption
 		default:
 			return nil, errors.Errorf("unexpected cipher type: %s", c.cipherType)
 		}
