@@ -16,23 +16,25 @@ import (
 	"strings"
 )
 
-var socksYamux bool
-var socksPmux bool
-var socksPmuxConfig string
-var socksSymmetricallyEncrypts bool
-var socksSymmetricallyEncryptPassphrase string
-var socksCipherType string
-var socksPbkdf2JsonString string
+var flag struct {
+	yamux                          bool
+	pmux                           bool
+	pmuxConfig                     string
+	symmetricallyEncrypts          bool
+	symmetricallyEncryptPassphrase string
+	cipherType                     string
+	pbkdf2JsonString               string
+}
 
 func init() {
 	cmd.RootCmd.AddCommand(socksCmd)
-	socksCmd.Flags().BoolVarP(&socksYamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
-	socksCmd.Flags().BoolVarP(&socksPmux, cmd.PmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
-	socksCmd.Flags().StringVarP(&socksPmuxConfig, cmd.PmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
-	socksCmd.Flags().BoolVarP(&socksSymmetricallyEncrypts, cmd.SymmetricallyEncryptsFlagLongName, cmd.SymmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
-	socksCmd.Flags().StringVarP(&socksSymmetricallyEncryptPassphrase, cmd.SymmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
-	socksCmd.Flags().StringVarP(&socksCipherType, cmd.CipherTypeFlagLongName, "", cmd.DefaultCipherType, fmt.Sprintf("Cipher type: %s, %s, %s, %s ", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpensslAes128Ctr, piping_util.CipherTypeOpensslAes256Ctr, piping_util.CipherTypeOpenpgp))
-	socksCmd.Flags().StringVarP(&socksPbkdf2JsonString, cmd.Pbkdf2FlagLongName, "", "", fmt.Sprintf("e.g. %s", cmd.ExamplePbkdf2JsonStr()))
+	socksCmd.Flags().BoolVarP(&flag.yamux, "yamux", "", false, "Multiplex connection by hashicorp/yamux")
+	socksCmd.Flags().BoolVarP(&flag.pmux, cmd.PmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
+	socksCmd.Flags().StringVarP(&flag.pmuxConfig, cmd.PmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
+	socksCmd.Flags().BoolVarP(&flag.symmetricallyEncrypts, cmd.SymmetricallyEncryptsFlagLongName, cmd.SymmetricallyEncryptsFlagShortName, false, "Encrypt symmetrically")
+	socksCmd.Flags().StringVarP(&flag.symmetricallyEncryptPassphrase, cmd.SymmetricallyEncryptPassphraseFlagLongName, "", "", "Passphrase for encryption")
+	socksCmd.Flags().StringVarP(&flag.cipherType, cmd.CipherTypeFlagLongName, "", cmd.DefaultCipherType, fmt.Sprintf("Cipher type: %s, %s, %s, %s ", piping_util.CipherTypeAesCtr, piping_util.CipherTypeOpensslAes128Ctr, piping_util.CipherTypeOpensslAes256Ctr, piping_util.CipherTypeOpenpgp))
+	socksCmd.Flags().StringVarP(&flag.pbkdf2JsonString, cmd.Pbkdf2FlagLongName, "", "", fmt.Sprintf("e.g. %s", cmd.ExamplePbkdf2JsonStr()))
 }
 
 var socksCmd = &cobra.Command{
@@ -40,8 +42,8 @@ var socksCmd = &cobra.Command{
 	Short: "Run SOCKS server",
 	RunE: func(_ *cobra.Command, args []string) error {
 		// Validate cipher-type
-		if socksSymmetricallyEncrypts {
-			if err := cmd.ValidateClientCipher(socksCipherType); err != nil {
+		if flag.symmetricallyEncrypts {
+			if err := cmd.ValidateClientCipher(flag.cipherType); err != nil {
 				return err
 			}
 		}
@@ -69,15 +71,15 @@ var socksCmd = &cobra.Command{
 		// Print hint
 		socksPrintHintForClientHost(clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
 		// Make user input passphrase if it is empty
-		if socksSymmetricallyEncrypts {
-			err = cmd.MakeUserInputPassphraseIfEmpty(&socksSymmetricallyEncryptPassphrase)
+		if flag.symmetricallyEncrypts {
+			err = cmd.MakeUserInputPassphraseIfEmpty(&flag.symmetricallyEncryptPassphrase)
 			if err != nil {
 				return err
 			}
 		}
 
 		// If not using multiplexer
-		if !socksYamux && !socksPmux {
+		if !flag.yamux && !flag.pmux {
 			return errors.Errorf("--%s or --%s must be specified", cmd.YamuxFlagLongName, cmd.PmuxFlagLongName)
 		}
 
@@ -85,7 +87,7 @@ var socksCmd = &cobra.Command{
 		socksServer, err := socks.New(socksConf)
 
 		// If yamux is enabled
-		if socksYamux {
+		if flag.yamux {
 			fmt.Println("[INFO] Multiplexing with hashicorp/yamux")
 			return socksHandleWithYamux(socksServer, httpClient, headers, clientToServerUrl, serverToClientUrl)
 		}
@@ -97,7 +99,7 @@ var socksCmd = &cobra.Command{
 }
 
 func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
-	if !socksYamux && !socksPmux {
+	if !flag.yamux && !flag.pmux {
 		fmt.Println("[INFO] Hint: Client host (socat + curl)")
 		fmt.Printf(
 			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
@@ -106,16 +108,16 @@ func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl str
 		)
 	}
 	flags := ""
-	if socksSymmetricallyEncrypts {
+	if flag.symmetricallyEncrypts {
 		flags += fmt.Sprintf("-%s ", cmd.SymmetricallyEncryptsFlagShortName)
-		if socksCipherType != cmd.DefaultCipherType {
-			flags += fmt.Sprintf("--%s=%s ", cmd.CipherTypeFlagLongName, socksCipherType)
+		if flag.cipherType != cmd.DefaultCipherType {
+			flags += fmt.Sprintf("--%s=%s ", cmd.CipherTypeFlagLongName, flag.cipherType)
 		}
 	}
-	if socksYamux {
+	if flag.yamux {
 		flags += fmt.Sprintf("--%s ", cmd.YamuxFlagLongName)
 	}
-	if socksPmux {
+	if flag.pmux {
 		flags += fmt.Sprintf("--%s ", cmd.PmuxFlagLongName)
 	}
 	fmt.Println("[INFO] Hint: Client host (piping-tunnel)")
@@ -147,7 +149,7 @@ func socksHandleWithYamux(socksServer *socks.Server, httpClient *http.Client, he
 			return res, nil
 		},
 	)
-	duplex, err = cmd.MakeDuplexWithEncryptionAndProgressIfNeed(duplex, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType, socksPbkdf2JsonString)
+	duplex, err = cmd.MakeDuplexWithEncryptionAndProgressIfNeed(duplex, flag.symmetricallyEncrypts, flag.symmetricallyEncryptPassphrase, flag.cipherType, flag.pbkdf2JsonString)
 	if err != nil {
 		return err
 	}
@@ -166,10 +168,10 @@ func socksHandleWithYamux(socksServer *socks.Server, httpClient *http.Client, he
 
 func socksHandleWithPmux(socksServer *socks.Server, httpClient *http.Client, headers []piping_util.KeyValue, clientToServerUrl string, serverToClientUrl string) error {
 	var config cmd.ServerPmuxConfigJson
-	if json.Unmarshal([]byte(socksPmuxConfig), &config) != nil {
+	if json.Unmarshal([]byte(flag.pmuxConfig), &config) != nil {
 		return errors.Errorf("invalid pmux config format")
 	}
-	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, config.Hb, socksSymmetricallyEncrypts, socksSymmetricallyEncryptPassphrase, socksCipherType)
+	pmuxServer := pmux.Server(httpClient, headers, serverToClientUrl, clientToServerUrl, config.Hb, flag.symmetricallyEncrypts, flag.symmetricallyEncryptPassphrase, flag.cipherType)
 	for {
 		stream, err := pmuxServer.Accept()
 		if err != nil {
