@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 	"io"
 	"net/http"
-	"strings"
 )
 
 var flag struct {
@@ -69,7 +68,7 @@ var socksCmd = &cobra.Command{
 			return err
 		}
 		// Print hint
-		socksPrintHintForClientHost(clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
+		socksPrintHintForClientHost(clientToServerPath, serverToClientPath)
 		// Make user input passphrase if it is empty
 		if flag.symmetricallyEncrypts {
 			err = cmd.MakeUserInputPassphraseIfEmpty(&flag.symmetricallyEncryptPassphrase)
@@ -98,20 +97,17 @@ var socksCmd = &cobra.Command{
 	},
 }
 
-func socksPrintHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
-	if !flag.yamux && !flag.pmux {
-		fmt.Println("[INFO] Hint: Client host (socat + curl)")
-		fmt.Printf(
-			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
-			strings.Replace(serverToClientUrl, ":", "\\:", -1),
-			strings.Replace(clientToServerUrl, ":", "\\:", -1),
-		)
-	}
+// NOTE: multiplexing should be enabled, so there is no socat-curl hint
+func socksPrintHintForClientHost(clientToServerPath string, serverToClientPath string) {
 	flags := ""
 	if flag.symmetricallyEncrypts {
 		flags += fmt.Sprintf("-%s ", cmd.SymmetricallyEncryptsFlagShortName)
-		if flag.cipherType != cmd.DefaultCipherType {
-			flags += fmt.Sprintf("--%s=%s ", cmd.CipherTypeFlagLongName, flag.cipherType)
+		flags += fmt.Sprintf("--%s=%s ", cmd.CipherTypeFlagLongName, flag.cipherType)
+		switch flag.cipherType {
+		case piping_util.CipherTypeOpensslAes128Ctr:
+			fallthrough
+		case piping_util.CipherTypeOpensslAes256Ctr:
+			flags += fmt.Sprintf("--%s='%s' ", cmd.Pbkdf2FlagLongName, flag.pbkdf2JsonString)
 		}
 	}
 	if flag.yamux {

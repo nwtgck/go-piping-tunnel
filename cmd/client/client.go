@@ -15,7 +15,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 var flag struct {
@@ -85,8 +84,15 @@ var clientCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		var opensslAesCtrParams *cmd.OpensslAesCtrParams = nil
+		if flag.symmetricallyEncrypts {
+			opensslAesCtrParams, err = cmd.ParseOpensslAesCtrParams(flag.cipherType, flag.pbkdf2JsonString)
+			if err != nil {
+				return err
+			}
+		}
 		// Print hint
-		printHintForServerHost(ln, clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
+		printHintForServerHost(ln, clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath, opensslAesCtrParams)
 		// Make user input passphrase if it is empty
 		if flag.symmetricallyEncrypts {
 			err = cmd.MakeUserInputPassphraseIfEmpty(&flag.symmetricallyEncryptPassphrase)
@@ -148,7 +154,7 @@ var clientCmd = &cobra.Command{
 	},
 }
 
-func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
+func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string, opensslAesCtrParams *cmd.OpensslAesCtrParams) {
 	var listeningOn string
 	if addr, ok := ln.Addr().(*net.TCPAddr); ok {
 		// (base: https://stackoverflow.com/a/43425461)
@@ -159,19 +165,36 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 	}
 	fmt.Printf("[INFO] Client host listening on %s ...\n", listeningOn)
 	if !flag.yamux && !flag.pmux {
-		fmt.Println("[INFO] Hint: Server host (socat + curl)")
-		fmt.Printf(
-			"  socat 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s' TCP:127.0.0.1:<YOUR PORT>\n",
-			strings.Replace(clientToServerUrl, ":", "\\:", -1),
-			strings.Replace(serverToClientUrl, ":", "\\:", -1),
-		)
+		if flag.symmetricallyEncrypts {
+			if opensslAesCtrParams != nil {
+				fmt.Println("[INFO] Hint: Server host (nc + curl + openssl)")
+				fmt.Printf(
+					"  curl -sSN %s | stdbuf -i0 -o0 openssl aes-%d-ctr -d -pass \"pass:mypass\" -bufsize 1 -pbkdf2 -iter %d -md %s | nc 127.0.0.1 <YOUR PORT> | stdbuf -i0 -o0 openssl aes-%d-ctr -pass \"pass:mypass\" -bufsize 1 -pbkdf2 -iter %d -md %s | curl -sSNT - %s\n",
+					clientToServerUrl,
+					opensslAesCtrParams.KeyBits,
+					opensslAesCtrParams.Pbkdf2.Iter,
+					opensslAesCtrParams.Pbkdf2.HashNameForCommandHint,
+					opensslAesCtrParams.KeyBits,
+					opensslAesCtrParams.Pbkdf2.Iter,
+					opensslAesCtrParams.Pbkdf2.HashNameForCommandHint,
+					serverToClientUrl,
+				)
+			}
+		} else {
+			fmt.Println("[INFO] Hint: Server host (nc + curl)")
+			fmt.Printf("  curl -sSN %s | nc 127.0.0.1 <YOUR PORT> | curl -sSNT - %s\n", clientToServerUrl, serverToClientUrl)
+		}
 	}
 	fmt.Println("[INFO] Hint: Server host (piping-tunnel)")
 	flags := ""
 	if flag.symmetricallyEncrypts {
 		flags += fmt.Sprintf("-%s ", cmd.SymmetricallyEncryptsFlagShortName)
-		if flag.cipherType != cmd.DefaultCipherType {
-			flags += fmt.Sprintf("--%s=%s ", cmd.CipherTypeFlagLongName, flag.cipherType)
+		flags += fmt.Sprintf("--%s=%s ", cmd.CipherTypeFlagLongName, flag.cipherType)
+		switch flag.cipherType {
+		case piping_util.CipherTypeOpensslAes128Ctr:
+			fallthrough
+		case piping_util.CipherTypeOpensslAes256Ctr:
+			flags += fmt.Sprintf("--%s='%s' ", cmd.Pbkdf2FlagLongName, flag.pbkdf2JsonString)
 		}
 	}
 	if flag.yamux {
