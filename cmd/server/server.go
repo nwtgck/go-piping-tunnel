@@ -181,8 +181,12 @@ func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, 
 	flags := ""
 	if flag.symmetricallyEncrypts {
 		flags += fmt.Sprintf("-%s ", cmd.SymmetricallyEncryptsFlagShortName)
-		if flag.cipherType != cmd.DefaultCipherType {
-			flags += fmt.Sprintf("--%s=%s ", cmd.CipherTypeFlagLongName, flag.cipherType)
+		flags += fmt.Sprintf("--%s=%s ", cmd.CipherTypeFlagLongName, flag.cipherType)
+		switch flag.cipherType {
+		case piping_util.CipherTypeOpensslAes128Ctr:
+			fallthrough
+		case piping_util.CipherTypeOpensslAes256Ctr:
+			flags += fmt.Sprintf("--%s='%s' ", cmd.Pbkdf2FlagLongName, flag.pbkdf2JsonString)
 		}
 	}
 	if flag.yamux {
