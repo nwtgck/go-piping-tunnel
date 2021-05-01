@@ -15,7 +15,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 var flag struct {
@@ -159,12 +158,8 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 	}
 	fmt.Printf("[INFO] Client host listening on %s ...\n", listeningOn)
 	if !flag.yamux && !flag.pmux {
-		fmt.Println("[INFO] Hint: Server host (socat + curl)")
-		fmt.Printf(
-			"  socat 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s' TCP:127.0.0.1:<YOUR PORT>\n",
-			strings.Replace(clientToServerUrl, ":", "\\:", -1),
-			strings.Replace(serverToClientUrl, ":", "\\:", -1),
-		)
+		fmt.Println("[INFO] Hint: Server host (nc + curl)")
+		fmt.Printf("  curl -sSN %s | nc 127.0.0.1 <YOUR PORT> | curl -sSNT - %s\n", clientToServerUrl, serverToClientUrl)
 	}
 	fmt.Println("[INFO] Hint: Server host (piping-tunnel)")
 	flags := ""

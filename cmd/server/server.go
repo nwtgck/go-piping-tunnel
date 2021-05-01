@@ -14,7 +14,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -152,11 +151,8 @@ func serverHostDial() (net.Conn, error) {
 func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
 	if !flag.yamux && !flag.pmux {
 		fmt.Println("[INFO] Hint: Client host (socat + curl)")
-		fmt.Printf(
-			"  socat TCP-LISTEN:31376 'EXEC:curl -NsS %s!!EXEC:curl -NsST - %s'\n",
-			strings.Replace(serverToClientUrl, ":", "\\:", -1),
-			strings.Replace(clientToServerUrl, ":", "\\:", -1),
-		)
+		// NOTE: nc can be used instead of socat but nc has variant: `nc -l 31376` in BSD version, `nc -l -p 31376` in GNU version.
+		fmt.Printf("  curl -NsS %s | socat TCP-LISTEN:31376 - | curl -NsST - %s\n", serverToClientUrl, clientToServerUrl)
 	}
 	flags := ""
 	if flag.symmetricallyEncrypts {
