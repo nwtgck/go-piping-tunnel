@@ -77,8 +77,15 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		var opensslAesCtrParams *cmd.OpensslAesCtrParams = nil
+		if flag.symmetricallyEncrypts {
+			opensslAesCtrParams, err = cmd.ParseOpensslAesCtrParams(flag.cipherType, flag.pbkdf2JsonString)
+			if err != nil {
+				return err
+			}
+		}
 		// Print hint
-		printHintForClientHost(clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath)
+		printHintForClientHost(clientToServerUrl, serverToClientUrl, clientToServerPath, serverToClientPath, opensslAesCtrParams)
 		// Make user input passphrase if it is empty
 		if flag.symmetricallyEncrypts {
 			err = cmd.MakeUserInputPassphraseIfEmpty(&flag.symmetricallyEncryptPassphrase)
@@ -148,11 +155,28 @@ func serverHostDial() (net.Conn, error) {
 	}
 }
 
-func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string) {
+func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, clientToServerPath string, serverToClientPath string, opensslAesCtrParams *cmd.OpensslAesCtrParams) {
 	if !flag.yamux && !flag.pmux {
-		fmt.Println("[INFO] Hint: Client host (socat + curl)")
-		// NOTE: nc can be used instead of socat but nc has variant: `nc -l 31376` in BSD version, `nc -l -p 31376` in GNU version.
-		fmt.Printf("  curl -NsS %s | socat TCP-LISTEN:31376 - | curl -NsST - %s\n", serverToClientUrl, clientToServerUrl)
+		if flag.symmetricallyEncrypts {
+			if opensslAesCtrParams != nil {
+				fmt.Println("[INFO] Hint: Client host (socat + curl + openssl)")
+				fmt.Printf(
+					"  curl -NsS %s | stdbuf -i0 -o0 openssl aes-%d-ctr -d -pass \"pass:mypass\" -bufsize 1 -pbkdf2 -iter %d -md %s | socat TCP-LISTEN:31376 - | stdbuf -i0 -o0 openssl aes-%d-ctr -pass \"pass:mypass\" -bufsize 1 -pbkdf2 -iter %d -md %s | curl -NsST - %s\n",
+					serverToClientUrl,
+					opensslAesCtrParams.KeyBits,
+					opensslAesCtrParams.Pbkdf2.Iter,
+					opensslAesCtrParams.Pbkdf2.HashNameForCommandHint,
+					opensslAesCtrParams.KeyBits,
+					opensslAesCtrParams.Pbkdf2.Iter,
+					opensslAesCtrParams.Pbkdf2.HashNameForCommandHint,
+					clientToServerUrl,
+				)
+			}
+		} else {
+			fmt.Println("[INFO] Hint: Client host (socat + curl)")
+			// NOTE: nc can be used instead of socat but nc has variant: `nc -l 31376` in BSD version, `nc -l -p 31376` in GNU version.
+			fmt.Printf("  curl -NsS %s | socat TCP-LISTEN:31376 - | curl -NsST - %s\n", serverToClientUrl, clientToServerUrl)
+		}
 	}
 	flags := ""
 	if flag.symmetricallyEncrypts {

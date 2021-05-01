@@ -49,9 +49,15 @@ type pbkdf2ConfigJson struct {
 	Hash string `json:"hash"`
 }
 
-type pbkdf2Config struct {
-	Iter int
-	Hash func() hash.Hash
+type Pbkdf2Config struct {
+	Iter                   int
+	Hash                   func() hash.Hash
+	HashNameForCommandHint string // for command hint
+}
+
+type OpensslAesCtrParams struct {
+	KeyBits uint16
+	Pbkdf2  *Pbkdf2Config
 }
 
 var Vlog *verbose_logger.Logger
@@ -88,7 +94,7 @@ func validateHashFunctionName(str string) (func() hash.Hash, error) {
 	}
 }
 
-func parsePbkdf2(str string) (*pbkdf2Config, error) {
+func ParsePbkdf2(str string) (*Pbkdf2Config, error) {
 	var configJson pbkdf2ConfigJson
 	if json.Unmarshal([]byte(str), &configJson) != nil {
 		return nil, errors.Errorf("invalid pbkdf2 JSON format: e.g. --%s='%s'", Pbkdf2FlagLongName, ExamplePbkdf2JsonStr())
@@ -97,7 +103,28 @@ func parsePbkdf2(str string) (*pbkdf2Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &pbkdf2Config{Iter: configJson.Iter, Hash: h}, nil
+	return &Pbkdf2Config{Iter: configJson.Iter, Hash: h, HashNameForCommandHint: configJson.Hash}, nil
+}
+
+func ParseOpensslAesCtrParams(cipherType string, pbkdf2ConfigJsonStr string) (*OpensslAesCtrParams, error) {
+	var keyBits uint16
+	switch cipherType {
+	case piping_util.CipherTypeOpensslAes128Ctr:
+		keyBits = 128
+	case piping_util.CipherTypeOpensslAes256Ctr:
+		keyBits = 256
+	}
+	switch cipherType {
+	case piping_util.CipherTypeOpensslAes128Ctr:
+		fallthrough
+	case piping_util.CipherTypeOpensslAes256Ctr:
+		pbkdf2Config, err := ParsePbkdf2(pbkdf2ConfigJsonStr)
+		if err != nil {
+			return nil, err
+		}
+		return &OpensslAesCtrParams{KeyBits: keyBits, Pbkdf2: pbkdf2Config}, nil
+	}
+	return nil, nil
 }
 
 func ExamplePbkdf2JsonStr() string {
@@ -158,14 +185,14 @@ func MakeDuplexWithEncryptionAndProgressIfNeed(duplex io.ReadWriteCloser, encryp
 			duplex, err = aes_ctr_duplex.Duplex(duplex, duplex, []byte(passphrase))
 			cipherName = "AES-CTR"
 		case piping_util.CipherTypeOpensslAes128Ctr:
-			pbkdf2, err := parsePbkdf2(pbkdf2JsonStr)
+			pbkdf2, err := ParsePbkdf2(pbkdf2JsonStr)
 			if err != nil {
 				return nil, err
 			}
 			duplex, err = openssl_aes_ctr_duplex.Duplex(duplex, duplex, []byte(passphrase), pbkdf2.Iter, 128/8, pbkdf2.Hash)
 			cipherName = "OpenSSL-AES-128-CTR-compatible"
 		case piping_util.CipherTypeOpensslAes256Ctr:
-			pbkdf2, err := parsePbkdf2(pbkdf2JsonStr)
+			pbkdf2, err := ParsePbkdf2(pbkdf2JsonStr)
 			if err != nil {
 				return nil, err
 			}
