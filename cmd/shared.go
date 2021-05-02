@@ -29,7 +29,7 @@ const (
 	PmuxConfigFlagLongName                     = "pmux-config"
 	SymmetricallyEncryptsFlagLongName          = "symmetric"
 	SymmetricallyEncryptsFlagShortName         = "c"
-	SymmetricallyEncryptPassphraseFlagLongName = "passphrase"
+	SymmetricallyEncryptPassphraseFlagLongName = "pass"
 	CipherTypeFlagLongName                     = "cipher-type"
 	Pbkdf2FlagLongName                         = "pbkdf2"
 )
