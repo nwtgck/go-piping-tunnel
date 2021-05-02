@@ -160,9 +160,9 @@ func printHintForClientHost(clientToServerUrl string, serverToClientUrl string, 
 	if !flag.yamux && !flag.pmux {
 		if flag.symmetricallyEncrypts {
 			if opensslAesCtrParams != nil {
-				fmt.Println("[INFO] Hint: Client host (socat + curl + openssl)")
+				fmt.Println("[INFO] Hint: Client host. <PORT> should be replaced (socat + curl + openssl)")
 				fmt.Printf(
-					"  curl -NsS %s | stdbuf -i0 -o0 openssl aes-%d-ctr -d -pass \"pass:mypass\" -bufsize 1 -pbkdf2 -iter %d -md %s | socat TCP-LISTEN:31376 - | stdbuf -i0 -o0 openssl aes-%d-ctr -pass \"pass:mypass\" -bufsize 1 -pbkdf2 -iter %d -md %s | curl -NsST - %s\n",
+					"  read -p \"passphrase: \" -s pass && curl -NsS %s | stdbuf -i0 -o0 openssl aes-%d-ctr -d -pass \"pass:$pass\" -bufsize 1 -pbkdf2 -iter %d -md %s | socat TCP-LISTEN:31376 - | stdbuf -i0 -o0 openssl aes-%d-ctr -pass \"pass:$pass\" -bufsize 1 -pbkdf2 -iter %d -md %s | curl -NsST - %s; unset pass\n",
 					serverToClientUrl,
 					opensslAesCtrParams.KeyBits,
 					opensslAesCtrParams.Pbkdf2.Iter,

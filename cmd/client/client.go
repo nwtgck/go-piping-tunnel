@@ -168,9 +168,9 @@ func printHintForServerHost(ln net.Listener, clientToServerUrl string, serverToC
 	if !flag.yamux && !flag.pmux {
 		if flag.symmetricallyEncrypts {
 			if opensslAesCtrParams != nil {
-				fmt.Println("[INFO] Hint: Server host (nc + curl + openssl)")
+				fmt.Println("[INFO] Hint: Server host. <PORT> should be replaced (nc + curl + openssl)")
 				fmt.Printf(
-					"  curl -sSN %s | stdbuf -i0 -o0 openssl aes-%d-ctr -d -pass \"pass:mypass\" -bufsize 1 -pbkdf2 -iter %d -md %s | nc 127.0.0.1 <YOUR PORT> | stdbuf -i0 -o0 openssl aes-%d-ctr -pass \"pass:mypass\" -bufsize 1 -pbkdf2 -iter %d -md %s | curl -sSNT - %s\n",
+					"  read -p \"passphrase: \" -s pass && curl -sSN %s | stdbuf -i0 -o0 openssl aes-%d-ctr -d -pass \"pass:$pass\" -bufsize 1 -pbkdf2 -iter %d -md %s | nc 127.0.0.1 <YOUR PORT> | stdbuf -i0 -o0 openssl aes-%d-ctr -pass \"pass:$pass\" -bufsize 1 -pbkdf2 -iter %d -md %s | curl -sSNT - %s; unset pass\n",
 					clientToServerUrl,
 					opensslAesCtrParams.KeyBits,
 					opensslAesCtrParams.Pbkdf2.Iter,
