@@ -82,11 +82,12 @@ Usage:
   piping-tunnel server [flags]
 
 Flags:
-      --cipher-type string   Cipher type: aes-ctr, openpgp (default "aes-ctr")
+      --cipher-type string   Cipher type: aes-ctr, openssl-aes-128-ctr, openssl-aes-256-ctr, openpgp  (default "aes-ctr")
       --cs-buf-size uint     Buffer size of client-to-server in bytes (default 16)
   -h, --help                 help for server
       --host string          Target host (default "localhost")
-      --passphrase string    Passphrase for encryption
+      --pass string          Passphrase for encryption
+      --pbkdf2 string        e.g. {"iter":100000,"hash":"sha256"}
       --pmux                 Multiplex connection by pmux (experimental)
       --pmux-config string   pmux config in JSON (experimental) (default "{\"hb\": true}")
   -p, --port int             TCP port of server host
@@ -113,9 +114,10 @@ Usage:
   piping-tunnel client [flags]
 
 Flags:
-      --cipher-type string   Cipher type: aes-ctr, openpgp (default "aes-ctr")
+      --cipher-type string   Cipher type: aes-ctr, openssl-aes-128-ctr, openssl-aes-256-ctr, openpgp  (default "aes-ctr")
   -h, --help                 help for client
-      --passphrase string    Passphrase for encryption
+      --pass string          Passphrase for encryption
+      --pbkdf2 string        e.g. {"iter":100000,"hash":"sha256"}
       --pmux                 Multiplex connection by pmux (experimental)
       --pmux-config string   pmux config in JSON (experimental) (default "{\"hb\": true}")
   -p, --port int             TCP port of client host
@@ -144,9 +146,10 @@ Usage:
   piping-tunnel socks [flags]
 
 Flags:
-      --cipher-type string   Cipher type: aes-ctr, openpgp (default "aes-ctr")
+      --cipher-type string   Cipher type: aes-ctr, openssl-aes-128-ctr, openssl-aes-256-ctr, openpgp  (default "aes-ctr")
   -h, --help                 help for socks
-      --passphrase string    Passphrase for encryption
+      --pass string          Passphrase for encryption
+      --pbkdf2 string        e.g. {"iter":100000,"hash":"sha256"}
       --pmux                 Multiplex connection by pmux (experimental)
       --pmux-config string   pmux config in JSON (experimental) (default "{\"hb\": true}")
   -c, --symmetric            Encrypt symmetrically
