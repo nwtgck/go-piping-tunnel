@@ -7,6 +7,6 @@ require (
 	github.com/mattn/go-tty v0.0.3
 	github.com/nwtgck/go-socks v0.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.1.3
-	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
+	github.com/spf13/cobra v1.2.1
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 )
