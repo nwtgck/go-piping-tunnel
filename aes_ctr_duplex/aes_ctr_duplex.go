@@ -1,4 +1,4 @@
-package crypto_duplex
+package aes_ctr_duplex
 
 import (
 	"crypto"
@@ -19,7 +19,7 @@ type aesCtrDuplex struct {
 	closeBaseReader func() error
 }
 
-func EncryptDuplexWithAesCtr(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*aesCtrDuplex, error) {
+func Duplex(baseWriter io.WriteCloser, baseReader io.ReadCloser, passphrase []byte) (*aesCtrDuplex, error) {
 	// Generate salt
 	salt1, err := util.GenerateRandomBytes(saltLen)
 	if err != nil {

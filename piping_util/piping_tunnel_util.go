@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	CipherTypeOpenpgp string = "openpgp"
-	CipherTypeAesCtr         = "aes-ctr"
+	CipherTypeOpenpgp          string = "openpgp"
+	CipherTypeAesCtr                  = "aes-ctr"
+	CipherTypeOpensslAes128Ctr        = "openssl-aes-128-ctr"
+	CipherTypeOpensslAes256Ctr        = "openssl-aes-256-ctr"
 )
 
 type KeyValue struct {

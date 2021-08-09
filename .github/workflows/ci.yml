@@ -100,8 +100,35 @@ jobs:
     - name: Encrypt with AES-CTR
       run: |
         set -eux
-        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
-        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa bbb &
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=aes-ctr --pass=mypass aesctraaa aesctrbbb &
+        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=aes-ctr --pass=mypass aesctraaa aesctrbbb &
+        sleep 1
+        # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+        ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
+
+    - name: Encrypt with OpenSSL-compabile AES-CTR
+      run: |
+        set -eux
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --pass=mypass openssl1aaa openssl1bbb & echo $! > pid1
+        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --pass=mypass openssl1aaa openssl1bbb & echo $! > pid2
+        sleep 1
+        # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+        ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
+
+    - name: Encrypt with OpenSSL-compabile AES-CTR using real openssl in server host
+      run: |
+        set -eux
+        curl -sSN http://localhost:8080/openssl2aaa | stdbuf -i0 -o0 openssl aes-256-ctr -d -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | nc localhost 2022 | stdbuf -i0 -o0 openssl aes-256-ctr -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | curl -sSNT - http://localhost:8080/openssl2bbb &
+        ./piping-tunnel -s http://localhost:8080 client -p 3322 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --pass=mypass openssl2aaa openssl2bbb &
+        sleep 1
+        # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
+        ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
+
+    - name: Encrypt with OpenSSL-compabile AES-CTR using real openssl in client host
+      run: |
+        set -eux
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --symmetric --cipher-type=openssl-aes-256-ctr --pbkdf2='{"iter":100000,"hash":"sha256"}' --pass=mypass openssl3aaa openssl3bbb &
+        curl -NsS http://localhost:8080/openssl3bbb | stdbuf -i0 -o0 openssl aes-256-ctr -d -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | nc -l -p 3322 | stdbuf -i0 -o0 openssl aes-256-ctr -pass "pass:mypass" -bufsize 1 -pbkdf2 -iter 100000 -md sha256 | curl -NsST - http://localhost:8080/openssl3aaa &
         sleep 1
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
         ssh -p 3322 -o 'StrictHostKeyChecking no' guest@localhost hostname
@@ -124,9 +151,9 @@ jobs:
       run: |
         set -eux
         # Run server-host with yamux (encrypt with AES-CTR)
-        ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-yamux bbb-yamux & echo $! > pid1
+        ./piping-tunnel -s http://localhost:8080 server -p 2022 --yamux --symmetric --cipher-type=aes-ctr --pass=mypass aaa-yamux bbb-yamux & echo $! > pid1
         # Run client-host with yamux (encrypt with AES-CTR)
-        ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-yamux bbb-yamux & echo $! > pid2
+        ./piping-tunnel -s http://localhost:8080 client -p 4422 --yamux --symmetric --cipher-type=aes-ctr --pass=mypass aaa-yamux bbb-yamux & echo $! > pid2
         sleep 1
         # Check whether ssh multiple times
         # (base: -o option: https://www.cyberithub.com/ssh-host-key-verification-failed-error-in-linux/)
@@ -150,9 +177,9 @@ jobs:
       run: |
         set -eux
         # Run socks with yamux (encrypt with AES-CTR)
-        ./piping-tunnel -s http://localhost:8080 socks --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid1
+        ./piping-tunnel -s http://localhost:8080 socks --yamux --symmetric --cipher-type=aes-ctr --pass=mypass aaa-socks bbb-socks & echo $! > pid1
         # Run client-host with yamux (encrypt with AES-CTR)
-        ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux --symmetric --cipher-type=aes-ctr --passphrase=mypass aaa-socks bbb-socks & echo $! > pid2
+        ./piping-tunnel -s http://localhost:8080 client -p 1081 --yamux --symmetric --cipher-type=aes-ctr --pass=mypass aaa-socks bbb-socks & echo $! > pid2
         sleep 1
         # NOTE: Depends on external resource: example.com
         curl -x socks5h://localhost:1081 https://example.com

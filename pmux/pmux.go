@@ -7,8 +7,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/nwtgck/go-piping-tunnel/aes_ctr_duplex"
 	"github.com/nwtgck/go-piping-tunnel/backoff"
-	"github.com/nwtgck/go-piping-tunnel/crypto_duplex"
 	"github.com/nwtgck/go-piping-tunnel/early_piping_duplex"
 	"github.com/nwtgck/go-piping-tunnel/hb_duplex"
 	"github.com/nwtgck/go-piping-tunnel/openpgp_duplex"
@@ -193,9 +193,10 @@ func (s *server) Accept() (io.ReadWriteCloser, error) {
 		switch s.cipherType {
 		case piping_util.CipherTypeAesCtr:
 			// Encrypt with AES-CTR
-			duplex, err = crypto_duplex.EncryptDuplexWithAesCtr(duplex, duplex, []byte(s.passphrase))
+			duplex, err = aes_ctr_duplex.Duplex(duplex, duplex, []byte(s.passphrase))
 		case piping_util.CipherTypeOpenpgp:
 			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(s.passphrase))
+		// NOTE: pmux does not support openssl-compatible encryption
 		default:
 			return nil, errors.Errorf("unexpected cipher type: %s", s.cipherType)
 		}
@@ -329,9 +330,10 @@ func (c *client) Open() (io.ReadWriteCloser, error) {
 		switch c.cipherType {
 		case piping_util.CipherTypeAesCtr:
 			// Encrypt with AES-CTR
-			duplex, err = crypto_duplex.EncryptDuplexWithAesCtr(duplex, duplex, []byte(c.passphrase))
+			duplex, err = aes_ctr_duplex.Duplex(duplex, duplex, []byte(c.passphrase))
 		case piping_util.CipherTypeOpenpgp:
 			duplex, err = openpgp_duplex.SymmetricallyEncryptDuplexWithOpenPGP(duplex, duplex, []byte(c.passphrase))
+		// NOTE: pmux does not support openssl-compatible encryption
 		default:
 			return nil, errors.Errorf("unexpected cipher type: %s", c.cipherType)
 		}
