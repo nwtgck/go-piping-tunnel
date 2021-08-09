@@ -5,7 +5,7 @@ Tunneling over HTTP with [Piping Server](https://github.com/nwtgck/piping-server
 
 
 ## Install for Windows
-[Download](https://github.com/nwtgck/go-piping-tunnel/releases/download/v0.7.0/piping-tunnel-0.7.0-windows-amd64.zip)
+[Download](https://github.com/nwtgck/go-piping-tunnel/releases/download/v0.10.1/piping-tunnel-0.10.1-windows-amd64.zip)
 
 ## Install for macOS
 ```bash
@@ -14,8 +14,8 @@ brew install nwtgck/piping-tunnel/piping-tunnel
 
 ## Install for Ubuntu
 ```bash
-wget https://github.com/nwtgck/go-piping-tunnel/releases/download/v0.7.0/piping-tunnel-0.7.0-linux-amd64.deb
-dpkg -i piping-tunnel-0.7.0-linux-amd64.deb 
+wget https://github.com/nwtgck/go-piping-tunnel/releases/download/v0.10.1/piping-tunnel-0.10.1-linux-amd64.deb
+dpkg -i piping-tunnel-0.10.1-linux-amd64.deb 
 ```
 
 Get more executables in the [releases](https://github.com/nwtgck/go-piping-tunnel/releases).
