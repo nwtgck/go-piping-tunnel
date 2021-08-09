@@ -65,6 +65,9 @@ func CreateDialContext(dnsServer string) func(ctx context.Context, network, addr
 
 // (base: https://github.com/schollz/progressbar/blob/9c6973820b2153b15d2e6a08d8705ec981fda59f/progressbar.go#L784-L799)
 func HumanizeBytes(s float64) string {
+	if math.IsNaN(s) {
+		return "NaN"
+	}
 	sizes := []string{" B", " kB", " MB", " GB", " TB", " PB", " EB"}
 	base := 1024.0
 	if s < 10 {
