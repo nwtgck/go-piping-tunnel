@@ -6,7 +6,7 @@ jobs:
   build_multi_platform:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Go 1.x
         uses: actions/setup-go@v4
         with:
@@ -63,7 +63,7 @@ jobs:
       run: docker run -d -p 8888:80 nginx:alpine
     - name: Run Piping Server
       run: docker run -d -p 8080:8080 nwtgck/piping-server:v1.2.0
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Go 1.x
       uses: actions/setup-go@v4
       with:
