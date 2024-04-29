@@ -290,7 +290,11 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 	for {
 		stream, err := pmuxServer.Accept()
 		if err != nil {
-			return err
+			cmd.Vlog.Log(
+				fmt.Sprintf("error(pmux accept): %v", errors.WithStack(err)),
+				fmt.Sprintf("error(pmux accept): %+v", errors.WithStack(err)),
+			)
+			continue
 		}
 		conn := dialLoop()
 		go func() {

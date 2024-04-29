@@ -305,7 +305,11 @@ func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []pi
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			break
+			cmd.Vlog.Log(
+				fmt.Sprintf("error(accept): %v", errors.WithStack(err)),
+				fmt.Sprintf("error(accept): %+v", errors.WithStack(err)),
+			)
+			continue
 		}
 		stream, err := pmuxClient.Open()
 		if err != nil {
