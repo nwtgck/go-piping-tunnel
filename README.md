@@ -55,6 +55,7 @@ Environment variable:
 
 Available Commands:
   client      Run client-host
+  completion  Generate the autocompletion script for the specified shell
   help        Help about any command
   server      Run server-host
   socks       Run SOCKS server
@@ -63,8 +64,8 @@ Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
   -H, --header stringArray        HTTP header
   -h, --help                      help for piping-tunnel
-      --http-read-buf-size int    HTTP read-buffer size in bytes (default 16)
-      --http-write-buf-size int   HTTP write-buffer size in bytes (default 16)
+      --http-read-buf-size int    HTTP read-buffer size in bytes (default 4096)
+      --http-write-buf-size int   HTTP write-buffer size in bytes (default 4096)
   -k, --insecure                  Allow insecure server connections when using SSL
       --progress                  Show progress (default true)
   -s, --server string             Piping Server URL (default "https://ppng.io")
@@ -83,7 +84,7 @@ Usage:
 
 Flags:
       --cipher-type string   Cipher type: aes-ctr, openssl-aes-128-ctr, openssl-aes-256-ctr, openpgp  (default "aes-ctr")
-      --cs-buf-size uint     Buffer size of client-to-server in bytes (default 16)
+      --cs-buf-size uint     Buffer size of client-to-server in bytes (default 4096)
   -h, --help                 help for server
       --host string          Target host (default "localhost")
       --pass string          Passphrase for encryption
@@ -98,8 +99,8 @@ Flags:
 Global Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
   -H, --header stringArray        HTTP header
-      --http-read-buf-size int    HTTP read-buffer size in bytes (default 16)
-      --http-write-buf-size int   HTTP write-buffer size in bytes (default 16)
+      --http-read-buf-size int    HTTP read-buffer size in bytes (default 4096)
+      --http-write-buf-size int   HTTP write-buffer size in bytes (default 4096)
   -k, --insecure                  Allow insecure server connections when using SSL
       --progress                  Show progress (default true)
   -s, --server string             Piping Server URL (default "https://ppng.io")
@@ -121,7 +122,7 @@ Flags:
       --pmux                 Multiplex connection by pmux (experimental)
       --pmux-config string   pmux config in JSON (experimental) (default "{\"hb\": true}")
   -p, --port int             TCP port of client host
-      --sc-buf-size uint     Buffer size of server-to-client in bytes (default 16)
+      --sc-buf-size uint     Buffer size of server-to-client in bytes (default 4096)
   -c, --symmetric            Encrypt symmetrically
       --unix-socket string   Unix socket of client host
       --yamux                Multiplex connection by hashicorp/yamux
@@ -129,8 +130,8 @@ Flags:
 Global Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
   -H, --header stringArray        HTTP header
-      --http-read-buf-size int    HTTP read-buffer size in bytes (default 16)
-      --http-write-buf-size int   HTTP write-buffer size in bytes (default 16)
+      --http-read-buf-size int    HTTP read-buffer size in bytes (default 4096)
+      --http-write-buf-size int   HTTP write-buffer size in bytes (default 4096)
   -k, --insecure                  Allow insecure server connections when using SSL
       --progress                  Show progress (default true)
   -s, --server string             Piping Server URL (default "https://ppng.io")
@@ -158,8 +159,8 @@ Flags:
 Global Flags:
       --dns-server string         DNS server (e.g. 1.1.1.1:53)
   -H, --header stringArray        HTTP header
-      --http-read-buf-size int    HTTP read-buffer size in bytes (default 16)
-      --http-write-buf-size int   HTTP write-buffer size in bytes (default 16)
+      --http-read-buf-size int    HTTP read-buffer size in bytes (default 4096)
+      --http-write-buf-size int   HTTP write-buffer size in bytes (default 4096)
   -k, --insecure                  Allow insecure server connections when using SSL
       --progress                  Show progress (default true)
   -s, --server string             Piping Server URL (default "https://ppng.io")
