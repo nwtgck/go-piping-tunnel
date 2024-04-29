@@ -1,16 +1,16 @@
 name: CI
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   build_multi_platform:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Go 1.x
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.16
+          go-version: '1.20'
       - name: Build for multi-platform
         run: |
           set -xeu
@@ -30,7 +30,7 @@ jobs:
               CGO_ENABLED=0 go build -o "${BUILD_PATH}/piping-tunnel${EXTENSION}" main/main.go
           done
   operational_test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash
@@ -38,7 +38,7 @@ jobs:
     - name: Build SSH server Dockerfile
       run: |
         docker build -t ssh-server - <<'EOS'
-        FROM ubuntu:18.04
+        FROM ubuntu:20.04
         RUN apt update
         RUN apt install -y openssh-server
         RUN mkdir /var/run/sshd
@@ -63,11 +63,11 @@ jobs:
       run: docker run -d -p 8888:80 nginx:alpine
     - name: Run Piping Server
       run: docker run -d -p 8080:8080 nwtgck/piping-server:v1.2.0
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Go 1.x
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.16
+        go-version: '1.20'
     - run: CGO_ENABLED=0 go build -o piping-tunnel main/main.go
 
     - name: Normal tunnel

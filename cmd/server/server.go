@@ -36,7 +36,7 @@ func init() {
 	serverCmd.Flags().StringVarP(&flag.targetHost, "host", "", "localhost", "Target host")
 	serverCmd.Flags().IntVarP(&flag.serverHostPort, "port", "p", 0, "TCP port of server host")
 	serverCmd.Flags().StringVarP(&flag.serverHostUnixSocket, "unix-socket", "", "", "Unix socket of server host")
-	serverCmd.Flags().UintVarP(&flag.clientToServerBufSize, "cs-buf-size", "", 16, "Buffer size of client-to-server in bytes")
+	serverCmd.Flags().UintVarP(&flag.clientToServerBufSize, "cs-buf-size", "", 4096, "Buffer size of client-to-server in bytes")
 	serverCmd.Flags().BoolVarP(&flag.yamux, cmd.YamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
 	serverCmd.Flags().BoolVarP(&flag.pmux, cmd.PmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
 	serverCmd.Flags().StringVarP(&flag.pmuxConfig, cmd.PmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
@@ -125,13 +125,13 @@ var serverCmd = &cobra.Command{
 			fin := make(chan error)
 			go func() {
 				// TODO: hard code
-				var buf = make([]byte, 16)
+				var buf = make([]byte, 4096)
 				_, err := io.CopyBuffer(duplex, conn, buf)
 				fin <- err
 			}()
 			go func() {
 				// TODO: hard code
-				var buf = make([]byte, 16)
+				var buf = make([]byte, 4096)
 				_, err := io.CopyBuffer(conn, duplex, buf)
 				fin <- err
 			}()
@@ -248,13 +248,13 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyVal
 		fin := make(chan struct{})
 		go func() {
 			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, 4096)
 			io.CopyBuffer(yamuxStream, conn, buf)
 			fin <- struct{}{}
 		}()
 		go func() {
 			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, 4096)
 			io.CopyBuffer(conn, yamuxStream, buf)
 			fin <- struct{}{}
 		}()
@@ -290,12 +290,16 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 	for {
 		stream, err := pmuxServer.Accept()
 		if err != nil {
-			return err
+			cmd.Vlog.Log(
+				fmt.Sprintf("error(pmux accept): %v", errors.WithStack(err)),
+				fmt.Sprintf("error(pmux accept): %+v", errors.WithStack(err)),
+			)
+			continue
 		}
 		conn := dialLoop()
 		go func() {
 			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, 4096)
 			_, err := io.CopyBuffer(conn, stream, buf)
 			if err != nil {
 				cmd.Vlog.Log(
@@ -309,7 +313,7 @@ func serverHandleWithPmux(httpClient *http.Client, headers []piping_util.KeyValu
 
 		go func() {
 			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, 4096)
 			_, err := io.CopyBuffer(stream, conn, buf)
 			if err != nil {
 				cmd.Vlog.Log(

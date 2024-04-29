@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.11.0] - 2024-04-29
+### Changed
+* Update dependencies
+* Use 4096 bytes for buffer by default
+
 ## [0.10.2] - 2022-01-15
 ### Changed
 * Update dependencies
@@ -105,7 +110,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 * Initial release
 
-[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.10.2...HEAD
+[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.10.2...v0.11.0
 [0.10.2]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.9.0...v0.10.0

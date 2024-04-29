@@ -34,7 +34,7 @@ func init() {
 	cmd.RootCmd.AddCommand(clientCmd)
 	clientCmd.Flags().IntVarP(&flag.clientHostPort, "port", "p", 0, "TCP port of client host")
 	clientCmd.Flags().StringVarP(&flag.clientHostUnixSocket, "unix-socket", "", "", "Unix socket of client host")
-	clientCmd.Flags().UintVarP(&flag.serverToClientBufSize, "sc-buf-size", "", 16, "Buffer size of server-to-client in bytes")
+	clientCmd.Flags().UintVarP(&flag.serverToClientBufSize, "sc-buf-size", "", 4096, "Buffer size of server-to-client in bytes")
 	clientCmd.Flags().BoolVarP(&flag.yamux, cmd.YamuxFlagLongName, "", false, "Multiplex connection by hashicorp/yamux")
 	clientCmd.Flags().BoolVarP(&flag.pmux, cmd.PmuxFlagLongName, "", false, "Multiplex connection by pmux (experimental)")
 	clientCmd.Flags().StringVarP(&flag.pmuxConfig, cmd.PmuxConfigFlagLongName, "", `{"hb": true}`, "pmux config in JSON (experimental)")
@@ -132,13 +132,13 @@ var clientCmd = &cobra.Command{
 			fin := make(chan error)
 			go func() {
 				// TODO: hard code
-				var buf = make([]byte, 16)
+				var buf = make([]byte, 4096)
 				_, err := io.CopyBuffer(duplex, conn, buf)
 				fin <- err
 			}()
 			go func() {
 				// TODO: hard code
-				var buf = make([]byte, 16)
+				var buf = make([]byte, 4096)
 				_, err := io.CopyBuffer(conn, duplex, buf)
 				fin <- err
 			}()
@@ -264,13 +264,13 @@ func clientHandleWithYamux(ln net.Listener, httpClient *http.Client, headers []p
 		fin := make(chan struct{})
 		go func() {
 			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, 4096)
 			io.CopyBuffer(yamuxStream, conn, buf)
 			fin <- struct{}{}
 		}()
 		go func() {
 			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, 4096)
 			io.CopyBuffer(conn, yamuxStream, buf)
 			fin <- struct{}{}
 		}()
@@ -305,7 +305,11 @@ func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []pi
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			break
+			cmd.Vlog.Log(
+				fmt.Sprintf("error(accept): %v", errors.WithStack(err)),
+				fmt.Sprintf("error(accept): %+v", errors.WithStack(err)),
+			)
+			continue
 		}
 		stream, err := pmuxClient.Open()
 		if err != nil {
@@ -318,7 +322,7 @@ func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []pi
 		fin := make(chan struct{})
 		go func() {
 			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, 4096)
 			_, err := io.CopyBuffer(conn, stream, buf)
 			fin <- struct{}{}
 			if err != nil {
@@ -332,7 +336,7 @@ func clientHandleWithPmux(ln net.Listener, httpClient *http.Client, headers []pi
 
 		go func() {
 			// TODO: hard code
-			var buf = make([]byte, 16)
+			var buf = make([]byte, 4096)
 			_, err := io.CopyBuffer(stream, conn, buf)
 			fin <- struct{}{}
 			if err != nil {
