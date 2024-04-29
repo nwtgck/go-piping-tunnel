@@ -16,7 +16,6 @@ import (
 	"github.com/nwtgck/go-piping-tunnel/util"
 	"github.com/pkg/errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -123,7 +122,7 @@ func (s *server) sendVersionAndConfigLoop() {
 			time.Sleep(b.NextDuration())
 			continue
 		}
-		_, err = io.Copy(ioutil.Discard, postRes.Body)
+		_, err = io.Copy(io.Discard, postRes.Body)
 		if err != nil {
 			// backoff
 			time.Sleep(b.NextDuration())
@@ -142,7 +141,7 @@ func (s *server) getSubPath() (string, error) {
 	if getRes.StatusCode != 200 {
 		return "", &getSubPathStatusError{statusCode: getRes.StatusCode}
 	}
-	resBytes, err := ioutil.ReadAll(getRes.Body)
+	resBytes, err := io.ReadAll(getRes.Body)
 	if err != nil {
 		return "", err
 	}
@@ -289,7 +288,7 @@ func (c *client) sendSubPath() (string, error) {
 	if res.StatusCode != 200 {
 		return "", errors.Errorf("not status 200, found: %d", res.StatusCode)
 	}
-	_, err = io.Copy(ioutil.Discard, res.Body)
+	_, err = io.Copy(io.Discard, res.Body)
 	return subPath, err
 }
 
