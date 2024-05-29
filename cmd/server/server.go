@@ -218,9 +218,8 @@ func serverHandleWithYamux(httpClient *http.Client, headers []piping_util.KeyVal
 				return nil, err
 			}
 			contentType := res.Header.Get("Content-Type")
-			// NOTE: application/octet-stream is for compatibility
-			if contentType != cmd.YamuxMimeType && contentType != "application/octet-stream" {
-				return nil, errors.Errorf("invalid content-type: %s", contentType)
+			if contentType != cmd.YamuxMimeType {
+				fmt.Printf("[WARN] --%s flag may be missing in client-host\n", cmd.YamuxFlagLongName)
 			}
 			return res, nil
 		},
