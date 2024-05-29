@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.12.0] - 2024-05-29
+### Changed
+* Update dependencies
+* Warn about missing --yamux flag instead of error
+
 ## [0.11.0] - 2024-04-29
 ### Changed
 * Update dependencies
@@ -110,7 +115,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 * Initial release
 
-[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.10.2...v0.11.0
 [0.10.2]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/nwtgck/go-piping-tunnel/compare/v0.10.0...v0.10.1
