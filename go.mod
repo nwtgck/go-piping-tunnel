@@ -9,6 +9,5 @@ require (
 	github.com/nwtgck/go-socks v0.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
-	golang.org/x/crypto v0.23.0
-	golang.org/x/net v0.25.0 // indirect
+	golang.org/x/crypto v0.24.0
 )
