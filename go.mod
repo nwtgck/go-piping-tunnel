@@ -3,7 +3,7 @@ module github.com/nwtgck/go-piping-tunnel
 go 1.16
 
 require (
-	github.com/hashicorp/yamux v0.1.1
+	github.com/hashicorp/yamux v0.1.2
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-tty v0.0.5
 	github.com/nwtgck/go-socks v0.1.0
